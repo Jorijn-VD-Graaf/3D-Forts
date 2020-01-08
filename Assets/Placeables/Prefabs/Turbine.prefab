@@ -1,0 +1,232 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1127564078039554
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4007977227542756}
+  - component: {fileID: 65608966509790088}
+  - component: {fileID: 54685759176816788}
+  - component: {fileID: 114551133727744484}
+  - component: {fileID: 114220065032731500}
+  - component: {fileID: 114372728236907260}
+  m_Layer: 9
+  m_Name: Turbine
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4007977227542756
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1127564078039554}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -1.723, z: 1.849}
+  m_LocalScale: {x: 0.4, y: 0.4, z: 0.4}
+  m_Children:
+  - {fileID: 4575419332288920563}
+  m_Father: {fileID: 0}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &65608966509790088
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1127564078039554}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 1
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Size: {x: 1.5, y: 2.1, z: 2}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!54 &54685759176816788
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1127564078039554}
+  serializedVersion: 2
+  m_Mass: 1
+  m_Drag: 0
+  m_AngularDrag: 0.05
+  m_UseGravity: 0
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
+--- !u!114 &114551133727744484
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1127564078039554}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0468beba614654a9aac3df04cbf40834, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  MaxUpAngle: 20
+  MetalProduction: 0
+  EnergyProduction: 44
+  BuildTime: 20
+  MetalCost: 200
+  EnergyCost: 800
+  ReclaimationTime: 5
+  MetalReclaim: 100
+  EnergyReclaim: 400
+  MetalStorage: 0
+  EnergyStorage: 0
+  IsWeapon: 0
+  IsTech: 0
+  IsGroundOnly: 0
+  IsWindBasedEnergyProduction: 1
+  LimitOfLikePlaceables: 0
+  RequiresTech: 
+  HUDSprite: {fileID: 21300000, guid: 27cb48e0250157c4b81ba585e715f6d9, type: 3}
+--- !u!114 &114220065032731500
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1127564078039554}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3bb2874f8039c46e6bb1b0c04ff1e111, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxPlaceAngle: 30
+  isColliding: 0
+  PlaceablesDataScript: {fileID: 114551133727744484}
+  PlaceablesManagerScript: {fileID: 0}
+  PlacementControllerScript: {fileID: 0}
+  WindEffeciencyPrefab: {fileID: 1922871557379664, guid: da440ea0dce1b4734a9355e5633b0c97,
+    type: 3}
+  canvas: {fileID: 0}
+  buildBar: {fileID: 2260855634848644645, guid: 3addcae144f735f46895fb1650760775,
+    type: 3}
+  constructed: 0
+--- !u!114 &114372728236907260
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1127564078039554}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cfbdfc0b36f1d445e92d58d60db136df, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!95 &5530702943618292140
+Animator:
+  serializedVersion: 3
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 320215846283045349}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 3fa4945aa6bff424eab9b2396ff255da, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorControllerStateOnDisable: 0
+--- !u!1001 &8792595933638463721
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    m_TransformParent: {fileID: 4007977227542756}
+    m_Modifications:
+    - target: {fileID: -927199367670048503, guid: e8a57a915d50a17478e9c2332d5b3532,
+        type: 3}
+      propertyPath: m_Name
+      value: WindTurbine
+      objectReference: {fileID: 0}
+    - target: {fileID: -4216859302048453862, guid: e8a57a915d50a17478e9c2332d5b3532,
+        type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -4216859302048453862, guid: e8a57a915d50a17478e9c2332d5b3532,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.673
+      objectReference: {fileID: 0}
+    - target: {fileID: -4216859302048453862, guid: e8a57a915d50a17478e9c2332d5b3532,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -4216859302048453862, guid: e8a57a915d50a17478e9c2332d5b3532,
+        type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: -4216859302048453862, guid: e8a57a915d50a17478e9c2332d5b3532,
+        type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -4216859302048453862, guid: e8a57a915d50a17478e9c2332d5b3532,
+        type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -4216859302048453862, guid: e8a57a915d50a17478e9c2332d5b3532,
+        type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071067
+      objectReference: {fileID: 0}
+    - target: {fileID: -4216859302048453862, guid: e8a57a915d50a17478e9c2332d5b3532,
+        type: 3}
+      propertyPath: m_RootOrder
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -4216859302048453862, guid: e8a57a915d50a17478e9c2332d5b3532,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -4216859302048453862, guid: e8a57a915d50a17478e9c2332d5b3532,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -4216859302048453862, guid: e8a57a915d50a17478e9c2332d5b3532,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: e8a57a915d50a17478e9c2332d5b3532, type: 3}
+--- !u!4 &4575419332288920563 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -4216859302048453862, guid: e8a57a915d50a17478e9c2332d5b3532,
+    type: 3}
+  m_PrefabInstance: {fileID: 8792595933638463721}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &320215846283045349 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 9111962883125049612, guid: e8a57a915d50a17478e9c2332d5b3532,
+    type: 3}
+  m_PrefabInstance: {fileID: 8792595933638463721}
+  m_PrefabAsset: {fileID: 0}

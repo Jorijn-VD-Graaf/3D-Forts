@@ -1,0 +1,157 @@
+fileFormatVersion: 2
+guid: f3f865a1de5fd3d4e977d4c210f01e1d
+ModelImporter:
+  serializedVersion: 27
+  internalIDToNameTable:
+  - first:
+      74: -1086283611903352248
+    second: BatteryArmature|ArmatureAction
+  - first:
+      74: 2575441110093617003
+    second: BatteryArmature|CameraAction
+  - first:
+      74: 6515894205979723227
+    second: BatteryArmature|WeldingGlow|WeldingGlow|SparksBaked|WeldingGlow|SparksBaked
+  - first:
+      74: 874767333241941094
+    second: BatteryArmature|WeldingGlow|WeldingGlow|WeldGlowBaked|WeldingGlow|WeldGlowBaked
+  - first:
+      74: 8392851901772994164
+    second: BatteryArmature|WeldingGlow|WeldingGlow|WeldingMaskBaked|WeldingGlow|WeldingMas
+  - first:
+      74: -6398934812283610565
+    second: BatteryArmature|WeldingMask|WeldingMask|SparksBaked|WeldingMask|SparksBaked
+  - first:
+      74: -6716472573744194539
+    second: BatteryArmature|WeldingMask|WeldingMask|WeldGlowBaked|WeldingMask|WeldGlowBaked
+  - first:
+      74: -7972471296617149873
+    second: BatteryArmature|WeldingMask|WeldingMask|WeldingMaskBaked|WeldingMask|WeldingMas
+  - first:
+      74: 2170606077218463215
+    second: BatteryArmature|WeldingSparks|WeldingSparks|SparksBaked|WeldingSparks|SparksBak
+  - first:
+      74: 4956133008869284379
+    second: BatteryArmature|WeldingSparks|WeldingSparks|WeldGlowBaked|WeldingSparks|WeldGlo
+  - first:
+      74: -2788141463734547753
+    second: BatteryArmature|WeldingSparks|WeldingSparks|WeldingMaskBaked|WeldingSparks|Weld
+  externalObjects: {}
+  materials:
+    importMaterials: 1
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    motionNodeName: 
+    rigImportErrors: 
+    rigImportWarnings: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    importAnimatedCustomProperties: 0
+    importConstraints: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations:
+    - serializedVersion: 16
+      name: BatteryArmature|ArmatureAction
+      takeName: BatteryArmature|ArmatureAction
+      internalID: -1086283611903352248
+      firstFrame: 0
+      lastFrame: 20
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 0
+      loopBlend: 0
+      loopBlendOrientation: 0
+      loopBlendPositionY: 0
+      loopBlendPositionXZ: 0
+      keepOriginalOrientation: 0
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 0
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask: []
+      maskType: 3
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
+    isReadable: 0
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    useSRGBMaterialColor: 1
+    sortHierarchyByName: 1
+    importVisibility: 1
+    importBlendShapes: 1
+    importCameras: 1
+    importLights: 1
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    keepQuads: 0
+    weldVertices: 1
+    preserveHierarchy: 0
+    skinWeightsMode: 0
+    maxBonesPerVertex: 4
+    minBoneWeight: 0.001
+    meshOptimizationFlags: -1
+    indexFormat: 0
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+    normalCalculationMode: 4
+    legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
+    blendShapeNormalImportMode: 1
+    normalSmoothingSource: 0
+  referencedClips: []
+  importAnimation: 1
+  humanDescription:
+    serializedVersion: 3
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    globalScale: 1
+    rootMotionBoneName: 
+    hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  animationType: 2
+  humanoidOversampling: 1
+  avatarSetup: 0
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
