@@ -26,13 +26,6 @@ public class PlaceablesScript : MonoBehaviour {
 
     public bool constructed = false;
 
-
-
-    float yaw;
-    float pitch;
-
-
-
     public float FindWindEffeciency() {
         return CurrentWindEffeciencyScript.CheckWindEffiecency();
     }
@@ -86,7 +79,7 @@ public class PlaceablesScript : MonoBehaviour {
             build = false;
             currentTime -= Time.fixedDeltaTime * (PlaceablesDataScript.BuildTime / (PlaceablesDataScript.BuildTime/2/*DeleteTime*/));
             if (currentTime <= 0) {
-                GameObject.Destroy(gameObject);
+                Destroy(gameObject);
                 //And Add THE COST
                 PlaceablesManagerScript.SubtractPrice(-PlaceablesDataScript.MetalCost / 2, -PlaceablesDataScript.EnergyCost / 2);
                 destroy = false;
@@ -96,7 +89,7 @@ public class PlaceablesScript : MonoBehaviour {
         if (constructed) {
             PlaceablesManagerScript.SubtractPrice(-PlaceablesDataScript.MetalProduction * Time.fixedDeltaTime, -PlaceablesDataScript.EnergyProduction * Time.fixedDeltaTime);
             //If the platform you are on is destroyed
-            if (GetComponent<FixedJoint>() && GetComponent<FixedJoint>().connectedBody == null) {
+            if (GetComponent<FixedJoint>() && GetComponent<FixedJoint>().connectedBody == null && PlaceablesDataScript.IsGroundOnly == false) {
                 //Remove whatever storage you added.
                 PlaceablesManagerScript.metalStorage -= PlaceablesDataScript.MetalStorage;
                 PlaceablesManagerScript.energyStorage -= PlaceablesDataScript.EnergyStorage;
