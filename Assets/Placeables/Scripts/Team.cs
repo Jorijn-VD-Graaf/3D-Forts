@@ -34,6 +34,7 @@ public class Team : MonoBehaviour
         }
     }
 
+    // If it is a device set the team to the team which the material it is attached to is on.
     private void SetTeamToMaterial()
     {
         var JointFixed = gameObject.GetComponent<FixedJoint>();
@@ -44,7 +45,13 @@ public class Team : MonoBehaviour
             if (Material.GetComponent<Team>() != null)
             {
                 team = Material.GetComponent<Team>().team;
+            } else
+            {
+                Debug.LogError("Error: No team script found on material - Team Script on gameobject: " + gameObject);
             }
+        } else
+        {
+            Debug.LogError("Error: No joint found on gameobject - Team Script on gameobject: " + gameObject);
         }
     }
 
