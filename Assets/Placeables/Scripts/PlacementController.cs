@@ -22,9 +22,12 @@ public class PlacementController : MonoBehaviour {
     public List<GameObject> weaponsObjects;
     [SerializeField]
     public List<GameObject> techObjects;
+    [SerializeField]
+    public List<GameObject> uiTabs;
 
     List<GameObject> currentObjects;
 
+    public Animator canvasAnimator;
     public List<GameObject> HasTheseTech;
     public List<GameObject> HasThesePlaceables;
 
@@ -187,12 +190,17 @@ public class PlacementController : MonoBehaviour {
         }
         selectionIndex = 0;
         selectedCategory = category;
+        uiTabs[category].transform.SetSiblingIndex(2);
         if (category == DEVICES) {
             currentObjects = deviceObjects;
+            canvasAnimator.Play("SwitchToDevicesTab");
         } else if (category == WEAPONS) {
             currentObjects = weaponsObjects;
+            canvasAnimator.Play("SwitchToWeaponsTab");
         } else {
             currentObjects = techObjects;
+            canvasAnimator.Play("SwitchToTechTab");
+            
         }
     }
 
