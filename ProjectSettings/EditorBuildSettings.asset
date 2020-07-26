@@ -5,16 +5,19 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
-  - enabled: 1
-    path: Assets/Forts3DUI/Scenes/MainMenu.unity
-    guid: 99c9720ab356a0642a771bea13969a05
-  - enabled: 1
-    path: Assets/Building System/Scenes/TowerBuilder.unity
+  - enabled: 0
+    path: 
+    guid: 00000000000000000000000000000000
+  - enabled: 0
+    path: Assets/Scenes/Building System/TowerBuilder.unity
     guid: e7d800f458513cf4a817f0cb72e71d1b
   - enabled: 0
     path: 
     guid: 00000000000000000000000000000000
   - enabled: 0
-    path: Assets/Scenes/MainMenu.unity
-    guid: b792d68438837cc4a80cc4a1e2ae2d53
+    path: 
+    guid: 00000000000000000000000000000000
+  - enabled: 1
+    path: Assets/Scenes/Building System/BaseBuilder02.unity
+    guid: 59d22830e1b64014fad58afc4bfefa9a
   m_configObjects: {}
