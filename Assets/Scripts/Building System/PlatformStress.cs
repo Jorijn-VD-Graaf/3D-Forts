@@ -7,104 +7,71 @@ public class PlatformStress : MonoBehaviour {
     This is the main script for platform on calculating their structual strength 
     */
 
-
+    PanelScript panelScript;
     Rigidbody r;
     float compressionMax = 0.1f;
-    public Material solid;
-    Vector3 stressImpulse;
     float stress;
+    float startCompression = 0;
 
-    float maxAngle = 30;
-
-    Dictionary<GameObject, Vector3> connectedObjs;
-    Dictionary<GameObject, float> connectedObjsAngles;
-    List<float> compressions;
-
-    float startCompression;
-    List<float> distances;
+    MeshRenderer meshRenderer;
 
     AudioClip stressSound;
     AudioClip breakSound;
     AudioSource audioSource;
+    Mesh mesh;
 
     // Use this for initialization
     void Start() {
         r = GetComponent<Rigidbody>();
-        connectedObjs = new Dictionary<GameObject, Vector3>();
-        connectedObjsAngles = new Dictionary<GameObject, float>();
-        distances = new List<float>();
         audioSource = GetComponent<AudioSource>();
+        mesh = GetComponent<MeshFilter>().mesh;
+        meshRenderer = GetComponent<MeshRenderer>();
+        panelScript = GetComponent<PanelScript>();
     }
 
     // Update is called once per frame
     void FixedUpdate() {
         //Edge Selection
-        if (!r.IsSleeping()) {
-            stress = CalculateStress();
+        if (!r.IsSleeping() && startCompression != 0) {
+            stress = 1 - CalculateStress(mesh)/startCompression;
         }
-        if (stress > compressionMax) {
+        ShowStress(meshRenderer.material.color.a);
+        if (stress > compressionMax || stress < -compressionMax) {
             GetComponent<PlatformHealth>().Explode(transform.position, 0);
         }
     }
 
-    float CalculateStress() {
-        foreach (GameObject otherPlat in connectedObjs.Keys) {
-            if (otherPlat) {
-                //edge for other plat
-                Vector3 attachPoint = connectedObjs[otherPlat];
-                //angle for other plat
-                float attachDirection = connectedObjsAngles[otherPlat];
-                //How different is the plat angle since it was attached?
-                if (Mathf.Abs(Quaternion.Angle(transform.rotation, otherPlat.transform.rotation) - attachDirection) > maxAngle) {
-                    foreach (ConfigurableJoint item in GetComponents<ConfigurableJoint>()) {
-                        if (item && item.connectedBody == otherPlat.GetComponent<Rigidbody>()) {
-                            otherPlat.GetComponent<PlatformStress>().connectedObjs.Remove(gameObject);
-                            Destroy(item);
-                        }
-                    }
-                } else {
-                    //How far are you from the attached point?
-                    float startDistance = Mathf.Abs(Vector3.Distance(transform.position, transform.transform.TransformPoint(attachPoint)));
-                    float currentDistance = Mathf.Abs(Vector3.Distance(transform.position, otherPlat.transform.TransformPoint(attachPoint)));
-                    //print("start Distance " + startDistance);
-                    //print("current Distance " + currentDistance);
-                    distances.Add(currentDistance - startDistance);
-                }
+    float CalculateStress(Mesh m) {
+        var triangles = m.triangles;
+        var vertices = m.vertices;
 
-            }
+        double sum = 0.0;
+
+        for (int i = 0; i < triangles.Length; i += 3) {
+            Vector3 corner = vertices[triangles[i]];
+            Vector3 a = vertices[triangles[i + 1]] - corner;
+            Vector3 b = vertices[triangles[i + 2]] - corner;
+
+            sum += Vector3.Cross(a, b).magnitude;
         }
 
-        float total = 0;
-        foreach (float distance in distances) {
-            if (distance > total) {
-                total = distance;
-            }
-        }
-        distances.Clear();
-        return total;
+        return (float)(sum / 2.0);
     }
 
     public void ShowStress(float alpha) {
         Color stressColor = new Color(1, 1 - (stress * 10), 1 - (stress * 10), alpha);
-        GetComponent<MaterialManager>().UpdateColor(stressColor);
+        panelScript.ChangeColor(stressColor);
     }
-
-    public bool AddLink(GameObject obj, Vector3 connectionPoint) {
-        if (!connectedObjs.ContainsKey(obj)) {
-            connectedObjs[obj] = connectionPoint;
-            connectedObjsAngles[obj] = Quaternion.Angle(transform.rotation, obj.transform.rotation);
-            return true;
-        } else
-            return false;
-    }
-
 
     public void RemoveAllLinks() {
-        foreach (GameObject obj in connectedObjs.Keys) {
-            if (obj) {
-                obj.GetComponent<PlatformStress>().connectedObjs.Remove(gameObject);
-            }
+        foreach (ConfigurableJoint link in GetComponents<ConfigurableJoint>()) {
+            link.breakForce = 0;
         }
+    }
+
+    public void SetStartArea() {
+        mesh = GetComponent<MeshFilter>().mesh;
+        startCompression = CalculateStress(mesh);
     }
 
     private void OnDestroy() {

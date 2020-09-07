@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class BuildingAndPlacingSwitcher : MonoBehaviour
 {
-    private ExtrudeScript BuildingScriptSystem;
+    private BuildingSystem BuildingScriptSystem;
     private PlacementController PlacementScriptSystem;
     private GameObject BuildModeButton;
     private GameObject PlaceableModeButton;
@@ -13,7 +13,7 @@ public class BuildingAndPlacingSwitcher : MonoBehaviour
     //When the game starts, get connections to both systems
     private void Start()
     {
-        BuildingScriptSystem = gameObject.GetComponent<ExtrudeScript>();
+        BuildingScriptSystem = gameObject.GetComponent<BuildingSystem>();
         PlacementScriptSystem = GameObject.Find("PlaceablesPlacementController").GetComponent<PlacementController>();
 
         BuildModeButton = GameObject.Find("ButtonSystemSwitcherBuilding");

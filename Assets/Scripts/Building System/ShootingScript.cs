@@ -11,7 +11,7 @@ public class ShootingScript : MonoBehaviour {
         audioSource = GetComponent<AudioSource>();
     }
 
-    private void FixedUpdate() {
+    private void Update() {
         if (Input.GetMouseButtonDown(2)) {
             if (!audioSource.isPlaying) {
                 GameObject gArrow = Instantiate(bomb, transform.position, transform.rotation);

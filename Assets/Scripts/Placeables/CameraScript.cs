@@ -38,8 +38,8 @@ public class CameraScript : MonoBehaviour {
             gameObject.transform.rotation = camLoc.rotation;
         } else {
             if (Input.GetMouseButton(1)) {
-                yaw += speedH * Input.GetAxis("Mouse X");
-                pitch -= speedV * Input.GetAxis("Mouse Y");
+                yaw += speedH * Input.GetAxis("Mouse X") * Time.deltaTime;
+                pitch -= speedV * Input.GetAxis("Mouse Y") * Time.deltaTime;
                 transform.eulerAngles = new Vector3(pitch, yaw, 0.0f);
             }
             if (Input.GetKey("w")) {

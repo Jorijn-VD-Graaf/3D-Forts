@@ -23,24 +23,23 @@ public class PlatformHealth : MonoBehaviour {
     Material[] mats;
     Texture currentDamage;
 
-    public GameObject healthBar;
     GameObject myHealthBar;
     GameObject canvas;
     public GameObject fracturedObj;
 
     bool repairing = false;
     float percent;
-    PlatformStrut platformStrut;
+    PanelScript panelScript;
 
     private void Start() {
         health = maxHealth;
         canvas = GameObject.Find("Canvas");
-        platformStrut = GetComponent<PlatformStrut>();
+        panelScript = GetComponent<PanelScript>();
     }
 
     private void FixedUpdate() {
-        if (repairing && platformStrut.resourceManager.CanAfford(1 * Time.fixedDeltaTime, 0)) {
-            platformStrut.resourceManager.SubtractPrice(1 * Time.fixedDeltaTime, 0);
+        if (repairing && panelScript.resourceManager.CanAfford(1 * Time.fixedDeltaTime, 0)) {
+            panelScript.resourceManager.SubtractPrice(1 * Time.fixedDeltaTime, 0);
             Damage(-repairRate * Time.fixedDeltaTime);
             if (myHealthBar) {
                 myHealthBar.GetComponent<ProgressBar>().percent = percent;
@@ -68,26 +67,26 @@ public class PlatformHealth : MonoBehaviour {
         } else {
             currentDamage = damage_3;
         }
-        ShowDamageTexture();
+        //ShowDamageTexture();
         return health <= 0;
     }
 
     public void Explode(Vector3 explosionLoc, float force) {
         Destroy(gameObject);
-        GameObject fracture =  Instantiate(fracturedObj, transform.position, transform.rotation);
+       /** GameObject fracture =  Instantiate(fracturedObj, transform.position, transform.rotation);
         foreach (Transform t in fracture.transform) {
             Rigidbody r = t.GetComponent<Rigidbody>();
             if (r) {
                 r.AddExplosionForce(Random.Range((force - 15f > 0? force - 15f : 0.1f), force + 1.5f), explosionLoc, explosionRadius);
             }
-        }
+        }**/
     }
 
     public void ShowDamageTexture () {
-        GetComponent<MaterialManager>().UpdateMats(currentDamage);
+        GetComponent<MeshRenderer>().material.mainTexture = currentDamage;
     }
 
-    public bool Repair () {
+    public bool Repair (GameObject healthBar) {
         if (health < maxHealth) {
             if (!myHealthBar) {
                 myHealthBar = Instantiate(healthBar, canvas.transform);
