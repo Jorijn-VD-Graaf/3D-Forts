@@ -17,6 +17,7 @@ public class CostText : MonoBehaviour
         myText = GetComponent<Text>();
     }
 
+   
     void FixedUpdate() {
         if (attachedObject) {
             if (Vector3.Dot(myCamera.transform.forward, attachedObject.transform.position - myCamera.transform.position) > 0) {

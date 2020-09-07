@@ -1,0 +1,8 @@
+{
+  "runtimeOptions": {
+    "additionalProbingPaths": [
+      "C:\\Users\\fakea\\.dotnet\\store\\|arch|\\|tfm|",
+      "C:\\Users\\fakea\\.nuget\\packages"
+    ]
+  }
+}

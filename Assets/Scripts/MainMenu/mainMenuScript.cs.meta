@@ -1,0 +1,39 @@
+fileFormatVersion: 2
+guid: 3cff2b11c39d90745b1f6b7eb2717dd0
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - optionsMenu: {instanceID: 0}
+  - mainMenu: {instanceID: 0}
+  - grahpicsMenu: {instanceID: 0}
+  - gameplayMenu: {instanceID: 0}
+  - playerName: {instanceID: 0}
+  - winLoss: {instanceID: 0}
+  - rank: {instanceID: 0}
+  - resolution: {instanceID: 0}
+  - fov: {instanceID: 0}
+  - scale: {instanceID: 0}
+  - quality: {instanceID: 0}
+  - displayMode: {instanceID: 0}
+  - client: {instanceID: 0}
+  - server: {instanceID: 0}
+  - lobbyPrefab: {instanceID: 0}
+  - lobbySlotPrefab: {instanceID: 0}
+  - lobbyTeamPrefab: {instanceID: 0}
+  - lobbyMapPrefab: {instanceID: 0}
+  - lobbyMapThumbnail: {instanceID: 0}
+  - lobbyMapThumbnailGO: {instanceID: 0}
+  - lobbyMapScrollview: {instanceID: 0}
+  - selectedMap: {instanceID: 0}
+  - lobbyName: {instanceID: 0}
+  - lobbyScreen: {instanceID: 0}
+  - lobbySelector: {instanceID: 0}
+  - playerCreator: {instanceID: 0}
+  - playerCreatorr: {instanceID: 0}
+  - testMapSprite: {fileID: 21300000, guid: ac76a30b6b532a843bd6cc16a03e0a6f, type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

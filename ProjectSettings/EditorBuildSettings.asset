@@ -17,7 +17,13 @@ EditorBuildSettings:
   - enabled: 0
     path: 
     guid: 00000000000000000000000000000000
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/Building System/BaseBuilder02.unity
     guid: 59d22830e1b64014fad58afc4bfefa9a
+  - enabled: 0
+    path: Assets/Scenes/Main menu/MainMenu.unity
+    guid: 9d4f0848fbc33764eb05cac98178c9ba
+  - enabled: 1
+    path: Assets/Scenes/Multiplayer/MPTestScene.unity
+    guid: cfa24878dfdd12e4082489a44625482d
   m_configObjects: {}
