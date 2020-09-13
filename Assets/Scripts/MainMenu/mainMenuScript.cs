@@ -4,11 +4,10 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using System;
-using UnityEngine.SceneManagement;
 using System.Security.Cryptography;
 using System.Text;
-using UnityEngine.Video;
 using TMPro;
+using System.IO;
 
 public class mainMenuScript : MonoBehaviour
 {
@@ -47,10 +46,13 @@ public class mainMenuScript : MonoBehaviour
     public InputField playerCreatorr;
     public Sprite testMapSprite;
     public GameObject teamScrollViewContent;
+    public GameObject mapSelectorScrollview;
+    public Dictionary<string, string> folders = new Dictionary<string, string>();
 
     #region start screen
     public void Start()
     {
+        folders.Add("maps", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games", "3D Forts", "Maps"));
         if (PlayerPrefs.HasKey("UiScale"))
         {
             scaleInt = PlayerPrefs.GetFloat("UiScale");
@@ -69,22 +71,39 @@ public class mainMenuScript : MonoBehaviour
             }
             Debug.Log($"Loaded player profile: {player.name}, {player.wins}/{player.losses}, {player.rank}");
         }
-        List<List<Player>> teams = new List<List<Player>>();
-        List<Player> team = new List<Player>();
-        List<Player> team2 = new List<Player>();
-        List<Player> team3 = new List<Player>();
-        team.Add(null);
-        team.Add(null);
-        team.Add(null);
-        team2.Add(null);
-        team2.Add(null);
-        team3.Add(null);
-        team3.Add(null);
-        team3.Add(null);
-        teams.Add(team);
-        teams.Add(team2);
-        teams.Add(team3);
-        maps.Add(new Map("Testmap","1v1v1",testMapSprite,teams));
+        if (!Directory.Exists(folders["maps"]))
+        {
+            Directory.CreateDirectory(folders["maps"]);
+        }
+
+        //SaveMap(new Map("Testmap2",testMapSprite, new List<List<Player>>() { new List<Player>() { null }, new List<Player>() { null } }, Guid.NewGuid()));
+        //SaveMap(new Map("Testmap",testMapSprite, new List<List<Player>>() { new List<Player>() { null,null, null }, new List<Player>() { null, null }, new List<Player>() { null, null, null } }, Guid.NewGuid()));
+    }
+    public void SaveMap(Map map)
+    {
+        // if (!File.Exists(Path.Combine(folders["maps"], $"{map.name}.json")))
+        //{
+        using (FileStream fs = File.Create(Path.Combine(folders["maps"], $"{map.name}.json")))
+        {
+            byte[] bytes = Encoding.UTF8.GetBytes(JsonUtility.ToJson(new SerializedMap(map)));
+            fs.Write(bytes, 0, bytes.Length);
+        }
+        Debug.Log($"Saved map: {map.name}");
+        // }
+        // else
+        // {
+        //     Debug.LogError($"Map {map.name} already exists");
+        // }
+    }
+    public List<Map> LoadMaps()
+    {
+        string[] paths = Directory.GetFiles(folders["maps"]);
+        List<Map> loadedMaps = new List<Map>();
+        foreach (string path in paths)
+        {
+            loadedMaps.Add(new Map(JsonUtility.FromJson<SerializedMap>(File.ReadAllText(path))));
+        }
+        return loadedMaps;
     }
     public void options()
     {
@@ -151,9 +170,9 @@ public class mainMenuScript : MonoBehaviour
         HashAlgorithm algorithm = SHA256.Create();
         byte[] hash = algorithm.ComputeHash(Encoding.UTF8.GetBytes(rank.text));
         string str = Encoding.UTF8.GetString(hash);
-        if(str == "��i8��	F�zk�o���ʪ��sK�Z �W") //Deeval0per
+        if (str == "��i8��	F�zk�o���ʪ��sK�Z �W") //Deeval0per
         {
-            PlayerPrefs.SetString("playerRank",rank.text);
+            PlayerPrefs.SetString("playerRank", rank.text);
             player.rank = "Dev";
             rank.text = "Dev";
         }
@@ -229,8 +248,26 @@ public class mainMenuScript : MonoBehaviour
     {
         lobbySelector.SetActive(false);
         lobbyScreen.SetActive(true);
+        maps = LoadMaps();
         server.lobby = new Lobby(player.name + "'s lobby ", 1, 1, maps[0]);
-        SelectMap(0);
+        SelectMap(maps[0]);
+        float takenHeight = -28.74F;
+        for (int i = 0; i < maps.Count; i++)
+        {
+            Map map = maps[i];
+            GameObject mapGO = Instantiate(lobbyMapPrefab, mapSelectorScrollview.transform);
+            mapGO.transform.GetChild(0).GetComponent<TextMeshProUGUI>().text = maps[i].name + "\n" + maps[i].teamString;
+            mapGO.transform.localPosition = new Vector3(mapGO.transform.localPosition.x, takenHeight, 0);
+            mapGO.GetComponent<Button>().onClick.AddListener(() => SelectMap(map));
+            EventTrigger.Entry eventtype = new EventTrigger.Entry();
+            eventtype.eventID = EventTriggerType.PointerEnter;
+            eventtype.callback.AddListener((eventData) => { ShowMapPreview(map.thumbnail); });
+            mapGO.AddComponent<EventTrigger>();
+            mapGO.GetComponent<EventTrigger>().triggers.Add(eventtype);
+            takenHeight -= 57;
+        }
+        server.lobby.map.teams[0][0] = player;
+        RefreshLobby(server.lobby);
     }
     public void JoinLobby(Lobby lobby)
     {
@@ -264,27 +301,54 @@ public class mainMenuScript : MonoBehaviour
     {
         server.lobby.name = name;
     }
-    public void SelectMap(int chosenMap)
+    public void SelectMap(Map chosenMap)
     {
-        server.lobby.map = maps[chosenMap];
-        selectedMap.text = maps[chosenMap].name + "\n" + maps[chosenMap].teamString;
+        List<Player> oldPlayers = new List<Player>();
+        foreach (List<Player> oldTeam in server.lobby.map.teams)
+        {
+            foreach (Player player in oldTeam)
+            {
+                oldPlayers.Add(player);
+            }
+        }
+        int counter = 0;
+        for (int i1 = 0; i1 < chosenMap.teams.Count; i1++)
+        {
+            for (int i = 0; i < chosenMap.teams[i1].Count; i++)
+            {
+                if (counter > oldPlayers.Count)
+                {
+                    chosenMap.teams[i1][i] = oldPlayers[counter];
+                    counter++;
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+        server.lobby.map = chosenMap;
         lobbyMapScrollview.SetActive(false);
         lobbyMapThumbnailGO.SetActive(false);
         RefreshLobby(server.lobby);
     }
     public void OpenMapSelector()
     {
-        lobbyMapScrollview.SetActive(true);
-        lobbyMapThumbnailGO.SetActive(true);
-        float takenHeight = 121.26F;
-        for (int i = 0; i < maps.Count; i++)
+        if (lobbyMapScrollview.activeSelf)
         {
-            Map map = maps[i];
-            GameObject mapGO = Instantiate(lobbyMapPrefab);
-            mapGO.transform.localPosition.Set(mapGO.transform.localPosition.x, takenHeight, 0);
-            mapGO.GetComponent<Button>().onClick.AddListener(() => SelectMap(i));
-            takenHeight -= 57;
+            lobbyMapScrollview.SetActive(false);
+            lobbyMapThumbnailGO.SetActive(false);
         }
+        else
+        {
+            lobbyMapScrollview.SetActive(true);
+            lobbyMapThumbnailGO.SetActive(true);
+            ShowMapPreview(server.lobby.map.thumbnail);
+        }
+    }
+    public void ShowMapPreview(Sprite sprite)
+    {
+        lobbyMapThumbnail.sprite = sprite;
     }
     #endregion
     #region client
@@ -292,34 +356,36 @@ public class mainMenuScript : MonoBehaviour
     #endregion
     public void RefreshLobby(Lobby lobby)
     {
-        bool first = true;
-        float takenSpace = 0;
+        float takenSpace = 0F;
         lobbyName.text = lobby.name;
         selectedMap.text = lobby.map.name + "\n" + lobby.map.teamString;
-        foreach (List<Player> team in lobby.teams)
+        for (int i = 0; i < teamScrollViewContent.transform.childCount; i++)
         {
-            GameObject teamGameObject = Instantiate(lobbyTeamPrefab);
-            teamGameObject.transform.SetParent(teamScrollViewContent.transform);
-            if (first == false)
-            {
-                teamGameObject.transform.localPosition = new Vector3(lobbyTeamPrefab.transform.localPosition.x, takenSpace, 0);
-            }
-            else
-            {
-                first = false;
-                teamGameObject.transform.localPosition = lobbyTeamPrefab.transform.localPosition;
-
-            }
+            Destroy(teamScrollViewContent.transform.GetChild(i).gameObject);
+        }
+        for (int i1 = 0; i1 < lobby.map.teams.Count; i1++)
+        {
+            List<Player> team = lobby.map.teams[i1];
+            GameObject teamGameObject = Instantiate(lobbyTeamPrefab, teamScrollViewContent.transform);
+            teamGameObject.transform.GetChild(2).GetComponent<TextMeshProUGUI>().text = $"Team {i1 + 1}";
+            teamGameObject.transform.localPosition = new Vector3(lobbyTeamPrefab.transform.localPosition.x, takenSpace, 0);
             for (int i = 0; i < team.Count; i++)
             {
-                RectTransform rect = teamGameObject.GetComponent<RectTransform>();
-                rect.sizeDelta = new Vector2(-40.88257F, rect.sizeDelta.y + 69.817F);
-                GameObject playerGameObject = Instantiate(lobbySlotPrefab);
-                playerGameObject.transform.SetParent(teamGameObject.transform);
-                playerGameObject.transform.localPosition = new Vector3(0, (i+1)* 69.817F, 0);
+                GameObject playerGameObject = Instantiate(lobbySlotPrefab, teamGameObject.transform);
+                playerGameObject.transform.localPosition = new Vector3(3.110578F, ((i + 1) * -45F) - 5, 0);
+                if (team[i] != null)
+                {
+                    playerGameObject.transform.GetChild(0).gameObject.GetComponent<TextMeshProUGUI>().text = team[i].name;
+                    playerGameObject.transform.GetChild(3).gameObject.GetComponent<TextMeshProUGUI>().text = $"{team[i].wins}/{team[i].losses}";
+                    playerGameObject.transform.GetChild(2).gameObject.GetComponent<TextMeshProUGUI>().text = team[i].rank;
+                    playerGameObject.transform.GetChild(1).gameObject.GetComponent<TextMeshProUGUI>().text = $"{team[i].ping}ms";
+                }
             }
+            RectTransform rect = teamGameObject.GetComponent<RectTransform>();
+            rect.sizeDelta = new Vector2(-40.88257F, rect.sizeDelta.y + (team.Count * 45) + 5);
             teamGameObject.transform.localPosition = new Vector3(lobbyTeamPrefab.transform.localPosition.x, takenSpace, 0);
-            takenSpace += teamGameObject.transform.localPosition.y - teamGameObject.GetComponent<RectTransform>().sizeDelta.y - 17.283F;
+            takenSpace -= teamGameObject.GetComponent<RectTransform>().sizeDelta.y + 17F;
+            teamScrollViewContent.GetComponent<RectTransform>().sizeDelta = new Vector2(0, -takenSpace);
         }
     }
     #endregion

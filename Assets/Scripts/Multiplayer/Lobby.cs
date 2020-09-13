@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
+using System;
 
 public class Lobby
 {
@@ -12,7 +12,6 @@ public class Lobby
     public bool passProtected;
     public GameObject uiElement;
     public string gameMode;
-    public List<List<Player>> teams = new List<List<Player>>();
     public Map map;
     public byte[] password;
 
@@ -30,7 +29,6 @@ public class Lobby
         this.playersConnected = playersConnected;
         this.maxPlayers = maxPlayers;
         passProtected = true;
-        teams = map.teams;
         this.map = map;
         this.password = password;
     }
@@ -40,7 +38,6 @@ public class Lobby
         this.playersConnected = playersConnected;
         this.maxPlayers = maxPlayers;
         passProtected = false;
-        teams = map.teams;
         this.map = map;
     }
     public Lobby(Packet packet, int type)
@@ -52,16 +49,17 @@ public class Lobby
             {
                 int teamSize = packet.ReadInt();
                 List<Player> team = new List<Player>();
-                teams.Add(team);
+                map.teams.Add(team);
                 for (int i1 = 0; i1 < teamSize; i1++)
                 {
                     team.Add(new Player(packet.ReadString(), packet.ReadInt(), packet.ReadInt(), packet.ReadString()));
                 }
             }
             name = packet.ReadString();
-            map.UUID = new GUID(packet.ReadString());
+            map.UUID = new Guid(packet.ReadString());
         }
     }
+    /*
     public Lobby(string hostIP, string name, int playersConnected, int maxPlayers, bool passProtected, List<List<Player>> teams)
     {
         this.hostIP = hostIP;
@@ -71,6 +69,7 @@ public class Lobby
         this.passProtected = passProtected;
         this.teams = teams;
     }
+    */
     public Packet ToPacket(int type)
     {
         if (type == (int)Packets.LobbyInfoRequest)
@@ -88,8 +87,8 @@ public class Lobby
         {
             using (Packet packet = new Packet((int)Packets.lobbyUpdate))
             {
-                packet.Write(teams.Count);
-                foreach (List<Player> item in teams)
+                packet.Write(map.teams.Count);
+                foreach (List<Player> item in map.teams)
                 {
                     packet.Write(item.Count);
                     foreach (Player player in item)

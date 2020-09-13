@@ -26,6 +26,5 @@ public class PositionLogger : MonoBehaviour
         localZ = gameObject.transform.localPosition.z;
         sizeX = rect.sizeDelta.x;
         sizeY = rect.sizeDelta.y;
-
     }
 }

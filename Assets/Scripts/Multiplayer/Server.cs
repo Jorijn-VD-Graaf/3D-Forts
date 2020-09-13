@@ -95,7 +95,7 @@ public class Server : MonoBehaviour
         tcpListener.BeginAcceptTcpClient(TCPConnectCallback, null);
         Debug.Log($"Incoming connection from {_client.Client.RemoteEndPoint}...");
         int playerCapacity = 0;
-        foreach (List<Player> teams in lobby.teams)
+        foreach (List<Player> teams in lobby.map.teams)
         {
             playerCapacity += teams.Count;
         }
@@ -106,7 +106,7 @@ public class Server : MonoBehaviour
         } 
         for (int i = 0; i < playerCapacity; i++)
         {
-            foreach (List<Player> teams in lobby.teams)
+            foreach (List<Player> teams in lobby.map.teams)
             {
                 foreach (Player player in teams)
                 {
@@ -187,7 +187,7 @@ public class Server : MonoBehaviour
         Player player = new Player(packet);
         int _clientIdCheck = packet.ReadInt();
         player.id = _clientIdCheck;
-        foreach(List<Player> team in lobby.teams)
+        foreach(List<Player> team in lobby.map.teams)
         {
             foreach (Player playerr in team)
             {
