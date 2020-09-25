@@ -49,9 +49,10 @@ public class Client : MonoBehaviour
             { (int) Packets.requestLobbyList, HandleLobbyRequest},
             { (int) Packets.LobbyInfoRequest, HandleLobbyInfo},
             { (int) Packets.lobbyUpdate, HandleLobbyRefresh},
-            { (int) Packets.lobbyUpdate, HandleDownload},
+            { (int) Packets.MapDownloadRequest, HandleDownload},
+            { (int) Packets.disconnect, HandleDisconnect},
         };
-        print("Initzailzed packet handlers.");
+        Debug.Log("Initzailzed packet handlers.");
     }
     #endregion
 
@@ -62,12 +63,34 @@ public class Client : MonoBehaviour
     }
     public void GetLobbyList()
     {
-        tcp.Connect(lobbyIp, lobbyPort);
+        try
+        {
+            tcp.Connect(lobbyIp, lobbyPort);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"Couldn't connect to lobby server: {e}");
+            mainMenu.cantConnect.SetActive(true);
+        }
     }
     public void RegisterLobby(string ip)
     {
         tcp.Connect(lobbyIp, lobbyPort2);
         StartCoroutine(ExampleCoroutine(ip));
+    }
+    public void UnregisterLobby(string ip)
+    {
+        tcp.Connect(lobbyIp, lobbyPort2);
+        StartCoroutine(UnregisterLobbyCoroutine(ip));
+    }
+    IEnumerator UnregisterLobbyCoroutine(string ip)
+    {
+        yield return new WaitForSeconds(0.5F);
+        using (Packet _packet = new Packet((int)Packets.unRegisterLobby))
+        {
+            _packet.Write(ip);
+            tcp.SendData(_packet);
+        }
 
     }
     public void JoinLobby(Lobby lobby)
@@ -75,13 +98,17 @@ public class Client : MonoBehaviour
         tcp.Connect(ip, port);
         currentLobby = lobby;
     }
+    public void JoinLobby(string ip)
+    {
+        tcp.Connect(ip, port);
+    }
     IEnumerator ExampleCoroutine(string ip)
     {
         yield return new WaitForSeconds(0.5F);
         using (Packet _packet = new Packet((int)Packets.registerLobby))
         {
-            print(ip);
-            _packet.Write(ip);
+            //_packet.Write(ip);
+            _packet.Write("172.17.155.161");
             tcp.SendData(_packet);
         }
 
@@ -112,6 +139,11 @@ public class Client : MonoBehaviour
         Packet _packet = mainMenu.player.ToPacket((int)Packets.welcome);
         _packet.Write(myId);
         tcp.SendData(_packet);
+    }
+    public void HandleDisconnect(Packet packet)
+    {
+        string reason = packet.ReadString();
+        mainMenu.ShowDisconnect(reason);
     }
     public void HandleLobbyRefresh(Packet packet)
     {

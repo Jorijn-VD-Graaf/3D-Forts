@@ -9,9 +9,10 @@ public enum Packets
     LobbyInfoRequest = 2,
     requestLobbyList = 3,
     registerLobby = 4,
-    lobbyUpdate = 5,
-    disconnect = 6,
-    MapDownloadRequest = 7,
+    unRegisterLobby = 5,
+    lobbyUpdate = 6,
+    disconnect = 7,
+    MapDownloadRequest = 8,
 }
 
 public class Packet : IDisposable

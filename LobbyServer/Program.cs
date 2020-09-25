@@ -42,7 +42,8 @@ namespace LobbyServer
 
             packetHandlers = new Dictionary<int, PacketHandler>()
             {
-                { (int)Packets.registerLobby, HandleRegister }
+                { (int)Packets.registerLobby, HandleRegister },
+                { (int)Packets.unRegisterLobby, HandleUnRegister }
             };
 
             Console.WriteLine($"Server started on port {port} and port {port2}.");
@@ -51,16 +52,23 @@ namespace LobbyServer
         /// <summary>Opens port via open.nat</summary>
         public static async Task OpenPort()
         {
-            var nat = new NatDiscoverer();
-            var cts = new CancellationTokenSource(5000);
-            var device = await nat.DiscoverDeviceAsync(PortMapper.Upnp, cts);
-            var ip = await device.GetExternalIPAsync();
+            try
+            {
+                var nat = new NatDiscoverer();
+                var cts = new CancellationTokenSource(5000);
+                var device = await nat.DiscoverDeviceAsync(PortMapper.Upnp, cts);
+                var ip = await device.GetExternalIPAsync();
 
-            Console.WriteLine($"Your IP: {ip}");
+                Console.WriteLine($"Your IP: {ip}");
 
-            await device.CreatePortMapAsync(new Mapping(Protocol.Tcp, port, port, 0, "3D forts lobby server"));
-            await device.CreatePortMapAsync(new Mapping(Protocol.Tcp, port2, port2, 0, "3D forts lobby server_"));
-            Console.WriteLine($"Opened port: {port} and port {port2}.");
+                await device.CreatePortMapAsync(new Mapping(Protocol.Tcp, port, port, 0, "3D forts lobby server"));
+                await device.CreatePortMapAsync(new Mapping(Protocol.Tcp, port2, port2, 0, "3D forts lobby server_"));
+                Console.WriteLine($"Opened port: {port} and port {port2}.");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Failed to open nat: {e}");
+            }
         }
         #endregion
 
@@ -98,6 +106,12 @@ namespace LobbyServer
         {
             lobbies.Add(packet.ReadString());
             Console.WriteLine($"Lobby registerd: {lobbies[lobbies.Count - 1]}");
+        }
+        private static void HandleUnRegister(int _fromClient, Packet packet)
+        {
+            string ip = packet.ReadString();
+            lobbies.Remove(ip);
+            Console.WriteLine($"Lobby unregisterd: {ip}");
         }
         #endregion
         public class ServerClient
@@ -236,6 +250,7 @@ namespace LobbyServer
         LobbyInfoRequest = 2,
         requestLobbyList = 3,
         registerLobby = 4,
+        unRegisterLobby = 5,
     }
 
     public class Packet : IDisposable

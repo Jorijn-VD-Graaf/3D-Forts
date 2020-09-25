@@ -8,7 +8,6 @@ using System.Security.Cryptography;
 using System.Text;
 using TMPro;
 using System.IO;
-using UnityEditor.Rendering;
 
 public class mainMenuScript : MonoBehaviour
 {
@@ -52,6 +51,13 @@ public class mainMenuScript : MonoBehaviour
     public GameObject spectators;
     public GameObject spectatorPrefab;
     public TMP_Dropdown publicictyChooser;
+    public GameObject disconnectScreen;
+    public TMP_Text disconnectReason;
+    public Button backToLobbySelect;
+    public GameObject cantConnect;
+    public GameObject directConnectIp;
+    public TMP_InputField directConnectIpInput;
+
 
     #region start screen
     public void Start()
@@ -99,6 +105,7 @@ public class mainMenuScript : MonoBehaviour
         //     Debug.LogError($"Map {map.name} already exists");
         // }
     }
+
     public List<Map> LoadMaps()
     {
         Debug.Log("Loading maps");
@@ -108,6 +115,7 @@ public class mainMenuScript : MonoBehaviour
         {
             loadedMaps.Add(new Map(JsonUtility.FromJson<SerializedMap>(File.ReadAllText(path))));
         }
+        Debug.Log("Finsihed loading maps");
         return loadedMaps;
     }
     public void options()
@@ -127,6 +135,7 @@ public class mainMenuScript : MonoBehaviour
         {
             mainMenu.SetActive(false);
             lobbySelector.SetActive(true);
+            RefreshLobbies();
         }
         else
         {
@@ -247,6 +256,7 @@ public class mainMenuScript : MonoBehaviour
     }
     public void RefreshLobbies()
     {
+        client.StartClient();
         client.GetLobbyList();
     }
     public void HostLobby()
@@ -271,15 +281,41 @@ public class mainMenuScript : MonoBehaviour
             mapGO.GetComponent<EventTrigger>().triggers.Add(eventtype);
             takenHeight -= 57;
         }
+        server.StartServer();
         server.lobby.map.teams[0][0] = player;
         RefreshLobby(server.lobby);
     }
+
     public void JoinLobby(Lobby lobby)
     {
         maps = LoadMaps();
         lobbySelector.SetActive(false);
         lobbyScreen.SetActive(true);
         client.JoinLobby(lobby);
+    }
+    public void ShowDisconnect(string reason)
+    {
+        disconnectScreen.SetActive(true);
+        lobbyScreen.SetActive(false);
+        disconnectReason.text = $"Disconnected: \n {reason}";
+        backToLobbySelect.GetComponent<Button>().onClick.AddListener(() => lobbySelector.SetActive(true));
+        backToLobbySelect.GetComponent<Button>().onClick.AddListener(() => disconnectScreen.SetActive(false));
+    }
+    public void EnterDirectConnect()
+    {
+        directConnectIp.SetActive(true);
+    }
+    public void DirectConnect()
+    {
+        maps = LoadMaps();
+        lobbySelector.SetActive(false);
+        lobbyScreen.SetActive(true);
+        client.JoinLobby(directConnectIpInput.text);
+    }
+    public void BackToMenu()
+    {
+        lobbySelector.SetActive(false);
+        mainMenu.SetActive(true);
     }
     #endregion
     #region lobby screen
@@ -298,18 +334,18 @@ public class mainMenuScript : MonoBehaviour
         server.lobby.teams[gameObject.transform.GetSiblingIndex()].Add(null);
     }
     */
-    public void ChangePublicicty()
+    public void ChangeVisibilty()
     {
-        print(publicictyChooser.value);
-        if (publicictyChooser.value == 0&&server.running)
+        /*
+        if(server.openNat == false && publicictyChooser.value == 2)
         {
-            //TODO: make private
+            publicictyChooser.value = 1;
+            Debug.LogError("Can't change to public due to NAT failure");
         }
-        else if(publicictyChooser.value == 1)
-        {
-            server.StartServer();
-        }
-
+        else*/
+        //{
+            server.ChangeVisibilty(publicictyChooser.value);
+        //}
     }
     public void SetPassword(string password)
     {

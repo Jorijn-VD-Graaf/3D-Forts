@@ -24,8 +24,11 @@ public class Server : MonoBehaviour
     private TcpListener lobbyTcpListener;
     public Lobby lobby;
     public Client client;
-    public string externalIp;
+    public string externalIp = null;
+    public bool openNat = false;
     public bool running = false;
+    public bool registered = false;
+    public int visibilty = 0;
 
     #region Startup
     /// <summary>Starts server and opens port</summary>
@@ -34,18 +37,11 @@ public class Server : MonoBehaviour
         running = true;
         Debug.Log("Starting server...");
         await OpenPort();
-
         InitializeServerData();
-
         tcpListener = new TcpListener(IPAddress.Any, port);
         tcpListener.Start();
         tcpListener.BeginAcceptTcpClient(TCPConnectCallback, null);
         lobbyTcpListener = new TcpListener(IPAddress.Any, lobbyDetailsPort);
-        lobbyTcpListener.Start();
-        lobbyTcpListener.BeginAcceptTcpClient(LobbyTCPConnectCallback, null);
-
-        client.StartClient();
-        client.RegisterLobby(exteranlIp);
         Debug.Log($"Server started on port {port}.");
     }
     /// <summary>Opens port via open.nat</summary>
@@ -53,7 +49,6 @@ public class Server : MonoBehaviour
     {
         try
         {
-
             var nat = new NatDiscoverer();
             var cts = new CancellationTokenSource(5000);
             var device = await nat.DiscoverDeviceAsync(PortMapper.Upnp, cts);
@@ -65,10 +60,12 @@ public class Server : MonoBehaviour
             await device.CreatePortMapAsync(new Mapping(Protocol.Tcp, lobbyDetailsPort, lobbyDetailsPort, 0, "3D forts Lobby"));
             Debug.Log($"Opened port: {port}");
             exteranlIp = ip.ToString();
+            openNat = true;
         }
         catch (Exception e)
         {
-            Debug.LogError($"Error while opening nat: {e} \n only local games will be availble");
+            openNat = false;
+            Debug.LogWarning($"Error while opening nat: {e}");
         }
     }
     /// <summary>Sets up packet handlers</summary>
@@ -77,9 +74,32 @@ public class Server : MonoBehaviour
         packetHandlers = new Dictionary<int, PacketHandler>()
             {
                 { (int)Packets.welcome, HandleWelcome },
-                { (int)Packets.welcome, HandleMapDownload }
+                { (int)Packets.MapDownloadRequest, HandleMapDownload }
             };
         Debug.Log("Initialized packet handlers");
+    }
+    public void ChangeVisibilty(int newVisibilty)
+    {
+        if (newVisibilty < 2&&visibilty == 2)
+        {
+            lobbyTcpListener.Stop();
+            if (registered)
+            {
+                client.UnregisterLobby(externalIp);
+            }
+        } else if (newVisibilty == 2)
+        {
+            lobbyTcpListener.Start();
+            lobbyTcpListener.BeginAcceptTcpClient(LobbyTCPConnectCallback, null);
+            //if(openNat == true&&!registered)
+            //{
+                client.StartClient();
+                client.RegisterLobby(exteranlIp);
+                registered = true;
+            //}
+        }
+        //test
+        visibilty = newVisibilty;
     }
     #endregion
 
@@ -106,31 +126,52 @@ public class Server : MonoBehaviour
         TcpClient _client = tcpListener.EndAcceptTcpClient(_result);
         tcpListener.BeginAcceptTcpClient(TCPConnectCallback, null);
         Debug.Log($"Incoming connection from {_client.Client.RemoteEndPoint}...");
-        int playerCapacity = 0;
+        int playerCount = 0;
         foreach (List<Player> teams in lobby.map.teams)
         {
-            playerCapacity += teams.Count;
+            foreach (Player player in teams)
+            {
+                if (player != null)
+                {
+                    playerCount++;
+                }
+            }
         }
-        if (playerCapacity <= 0)
+        bool broken = false;
+        for (int i = 0; i < playerCount; i++)
         {
-            Debug.Log($"{_client.Client.RemoteEndPoint} failed to connect: Server full!");
-            return;
-        }
-        for (int i = 0; i < playerCapacity; i++)
-        {
+            if (broken)
+            {
+                break;
+            }
             foreach (List<Player> teams in lobby.map.teams)
             {
+                if (broken)
+                {
+                    break;
+                }
                 foreach (Player player in teams)
                 {
+                    if (broken)
+                    {
+                        break;
+                    }
                     if (player.id == i)
                     {
                         i++;
-                        continue;
+                    }
+                    else
+                    {
+                        broken = true;
                     }
                 }
             }
             clients.Add(i, new ServerClient(i, this));
             clients[i].tcp.Connect(_client);
+            if(visibilty == 0)
+            {
+                Disconnect(i,"Server set to private");
+            }
             return;
         }
     }
