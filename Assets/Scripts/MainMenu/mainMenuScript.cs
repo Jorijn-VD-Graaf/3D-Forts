@@ -8,6 +8,7 @@ using System.Security.Cryptography;
 using System.Text;
 using TMPro;
 using System.IO;
+using UnityEditor.Rendering;
 
 public class mainMenuScript : MonoBehaviour
 {
@@ -48,6 +49,9 @@ public class mainMenuScript : MonoBehaviour
     public GameObject teamScrollViewContent;
     public GameObject mapSelectorScrollview;
     public Dictionary<string, string> folders = new Dictionary<string, string>();
+    public GameObject spectators;
+    public GameObject spectatorPrefab;
+    public TMP_Dropdown publicictyChooser;
 
     #region start screen
     public void Start()
@@ -81,9 +85,9 @@ public class mainMenuScript : MonoBehaviour
     }
     public void SaveMap(Map map)
     {
-        // if (!File.Exists(Path.Combine(folders["maps"], $"{map.name}.json")))
+        // if (!File.Exists(Path.Combine(folders["maps"], $"{map.name}_{map.guid}.json")))
         //{
-        using (FileStream fs = File.Create(Path.Combine(folders["maps"], $"{map.name}.json")))
+        using (FileStream fs = File.Create(Path.Combine(folders["maps"], $"{map.name}_{map.guid}.json")))
         {
             byte[] bytes = Encoding.UTF8.GetBytes(JsonUtility.ToJson(new SerializedMap(map)));
             fs.Write(bytes, 0, bytes.Length);
@@ -97,6 +101,7 @@ public class mainMenuScript : MonoBehaviour
     }
     public List<Map> LoadMaps()
     {
+        Debug.Log("Loading maps");
         string[] paths = Directory.GetFiles(folders["maps"]);
         List<Map> loadedMaps = new List<Map>();
         foreach (string path in paths)
@@ -271,6 +276,7 @@ public class mainMenuScript : MonoBehaviour
     }
     public void JoinLobby(Lobby lobby)
     {
+        maps = LoadMaps();
         lobbySelector.SetActive(false);
         lobbyScreen.SetActive(true);
         client.JoinLobby(lobby);
@@ -292,6 +298,19 @@ public class mainMenuScript : MonoBehaviour
         server.lobby.teams[gameObject.transform.GetSiblingIndex()].Add(null);
     }
     */
+    public void ChangePublicicty()
+    {
+        print(publicictyChooser.value);
+        if (publicictyChooser.value == 0&&server.running)
+        {
+            //TODO: make private
+        }
+        else if(publicictyChooser.value == 1)
+        {
+            server.StartServer();
+        }
+
+    }
     public void SetPassword(string password)
     {
         using (HashAlgorithm algorithm = SHA256.Create())
@@ -300,15 +319,25 @@ public class mainMenuScript : MonoBehaviour
     public void SetName(string name)
     {
         server.lobby.name = name;
+        if (server.running == true)
+        {
+            server.SendLobbyUpdate();
+        }
     }
     public void SelectMap(Map chosenMap)
     {
         List<Player> oldPlayers = new List<Player>();
-        foreach (List<Player> oldTeam in server.lobby.map.teams)
+        for (int i1 = 0; i1 < server.lobby.map.teams.Count; i1++)
         {
-            foreach (Player player in oldTeam)
+            List<Player> oldTeam = server.lobby.map.teams[i1];
+            for (int i = 0; i < oldTeam.Count; i++)
             {
-                oldPlayers.Add(player);
+                Player player = oldTeam[i];
+                if (player != null)
+                {
+                    oldPlayers.Add(player);
+                }
+                server.lobby.map.teams[i1][i] = null;
             }
         }
         int counter = 0;
@@ -316,7 +345,7 @@ public class mainMenuScript : MonoBehaviour
         {
             for (int i = 0; i < chosenMap.teams[i1].Count; i++)
             {
-                if (counter > oldPlayers.Count)
+                if (counter < oldPlayers.Count)
                 {
                     chosenMap.teams[i1][i] = oldPlayers[counter];
                     counter++;
@@ -327,9 +356,17 @@ public class mainMenuScript : MonoBehaviour
                 }
             }
         }
+        for (; counter < oldPlayers.Count; counter++)
+        {
+            server.lobby.spectators.Add(oldPlayers[counter]);
+        }
         server.lobby.map = chosenMap;
         lobbyMapScrollview.SetActive(false);
         lobbyMapThumbnailGO.SetActive(false);
+        if (server.running == true)
+        {
+            server.SendLobbyUpdate();
+        }
         RefreshLobby(server.lobby);
     }
     public void OpenMapSelector()
@@ -354,6 +391,84 @@ public class mainMenuScript : MonoBehaviour
     #region client
 
     #endregion
+
+    public void takeSlot(int team, int slot)
+    {
+        if (client.myId != -1)
+        {
+            if (client.currentLobby.map.teams[team][slot] == null)
+            {
+                //client.takeSlot(team, slot)
+            }
+        }
+        else
+        {
+            if (server.lobby.map.teams[team][slot] == null)
+            {
+                foreach (List<Player> teamList in server.lobby.map.teams)
+                {
+                    for (int i = 0; i < teamList.Count; i++)
+                    {
+                        if (teamList[i] == player)
+                        {
+                            teamList[i] = null;
+                            break;
+                        }
+                    }
+                }
+                for (int i = 0; i < server.lobby.spectators.Count; i++)
+                {
+                    if (server.lobby.spectators[i] == player)
+                    {
+                        server.lobby.spectators.RemoveAt(i);
+                        break;
+                    }
+                }
+                server.lobby.map.teams[team][slot] = player;
+                if (server.running == true)
+                {
+                    server.SendLobbyUpdate();
+                }
+                RefreshLobby(server.lobby);
+            }
+        }
+    }
+
+    public void JoinSpectator()
+    {
+        if (client.myId != -1)
+        {
+            //client.JoinSpectator(team, slot)
+        }
+        else
+        {
+            foreach (List<Player> teamList in server.lobby.map.teams)
+            {
+                for (int i = 0; i < teamList.Count; i++)
+                {
+                    if (teamList[i] == player)
+                    {
+                        teamList[i] = null;
+                        break;
+                    }
+                }
+            }
+            for (int i = 0; i < server.lobby.spectators.Count; i++)
+            {
+                if (server.lobby.spectators[i] == player)
+                {
+                    server.lobby.spectators.RemoveAt(i);
+                    break;
+                }
+            }
+            server.lobby.spectators.Add(player);
+            if (server.running == true)
+            {
+                server.SendLobbyUpdate();
+            }
+            RefreshLobby(server.lobby);
+        }
+    }
     public void RefreshLobby(Lobby lobby)
     {
         float takenSpace = 0F;
@@ -362,6 +477,10 @@ public class mainMenuScript : MonoBehaviour
         for (int i = 0; i < teamScrollViewContent.transform.childCount; i++)
         {
             Destroy(teamScrollViewContent.transform.GetChild(i).gameObject);
+        }
+        for (int i = 0; i < spectators.transform.childCount; i++)
+        {
+            Destroy(spectators.transform.GetChild(i).gameObject);
         }
         for (int i1 = 0; i1 < lobby.map.teams.Count; i1++)
         {
@@ -373,12 +492,21 @@ public class mainMenuScript : MonoBehaviour
             {
                 GameObject playerGameObject = Instantiate(lobbySlotPrefab, teamGameObject.transform);
                 playerGameObject.transform.localPosition = new Vector3(3.110578F, ((i + 1) * -45F) - 5, 0);
+                int teamNumber = i1;
+                int slotNumber = i;
+                playerGameObject.GetComponent<Button>().onClick.AddListener(() => takeSlot(teamNumber, slotNumber));
                 if (team[i] != null)
                 {
                     playerGameObject.transform.GetChild(0).gameObject.GetComponent<TextMeshProUGUI>().text = team[i].name;
                     playerGameObject.transform.GetChild(3).gameObject.GetComponent<TextMeshProUGUI>().text = $"{team[i].wins}/{team[i].losses}";
                     playerGameObject.transform.GetChild(2).gameObject.GetComponent<TextMeshProUGUI>().text = team[i].rank;
                     playerGameObject.transform.GetChild(1).gameObject.GetComponent<TextMeshProUGUI>().text = $"{team[i].ping}ms";
+                    int index = i;
+                    if (client.myId == -1&&team[i] != player)
+                    {
+                        playerGameObject.transform.GetChild(4).gameObject.SetActive(true);
+                        playerGameObject.transform.GetChild(4).gameObject.GetComponent<Button>().onClick.AddListener(() => server.Disconnect(team[index].id));
+                    }
                 }
             }
             RectTransform rect = teamGameObject.GetComponent<RectTransform>();
@@ -386,6 +514,16 @@ public class mainMenuScript : MonoBehaviour
             teamGameObject.transform.localPosition = new Vector3(lobbyTeamPrefab.transform.localPosition.x, takenSpace, 0);
             takenSpace -= teamGameObject.GetComponent<RectTransform>().sizeDelta.y + 17F;
             teamScrollViewContent.GetComponent<RectTransform>().sizeDelta = new Vector2(0, -takenSpace);
+        }
+        float takenRoom = -23.41F;
+        RectTransform rectt = spectators.transform.GetComponent<RectTransform>();
+        foreach (Player player in lobby.spectators)
+        {
+            GameObject slot = Instantiate(spectatorPrefab, spectators.transform);
+            slot.transform.localPosition = new Vector3(13.44F, takenRoom, 0F);
+            takenRoom -= 30.813F;
+            rectt.sizeDelta = new Vector2(rectt.sizeDelta.x, Math.Abs(takenRoom - 10F));
+            slot.transform.GetChild(0).GetComponent<TextMeshProUGUI>().text = $"{player.name}  {player.wins}/{player.losses}  {player.rank}";
         }
     }
     #endregion

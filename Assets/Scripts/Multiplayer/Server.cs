@@ -7,6 +7,7 @@ using Open.Nat;
 using System.Threading.Tasks;
 using System.Threading;
 using UnityEngine;
+using System.Collections;
 
 public class Server : MonoBehaviour
 {
@@ -24,11 +25,13 @@ public class Server : MonoBehaviour
     public Lobby lobby;
     public Client client;
     public string externalIp;
+    public bool running = false;
 
     #region Startup
     /// <summary>Starts server and opens port</summary>
     public async void StartServer()
     {
+        running = true;
         Debug.Log("Starting server...");
         await OpenPort();
 
@@ -48,24 +51,33 @@ public class Server : MonoBehaviour
     /// <summary>Opens port via open.nat</summary>
     public async Task OpenPort()
     {
-        var nat = new NatDiscoverer();
-        var cts = new CancellationTokenSource(5000);
-        var device = await nat.DiscoverDeviceAsync(PortMapper.Upnp, cts);
-        var ip = await device.GetExternalIPAsync();
+        try
+        {
 
-        Debug.Log($"Your IP: {ip}");
+            var nat = new NatDiscoverer();
+            var cts = new CancellationTokenSource(5000);
+            var device = await nat.DiscoverDeviceAsync(PortMapper.Upnp, cts);
+            var ip = await device.GetExternalIPAsync();
 
-        await device.CreatePortMapAsync(new Mapping(Protocol.Tcp, port, port, 0, "3D forts"));
-        await device.CreatePortMapAsync(new Mapping(Protocol.Tcp, lobbyDetailsPort, lobbyDetailsPort, 0, "3D forts Lobby"));
-        Debug.Log($"Opened port: {port}");
-        exteranlIp = ip.ToString();
+            Debug.Log($"Your IP: {ip}");
+
+            await device.CreatePortMapAsync(new Mapping(Protocol.Tcp, port, port, 0, "3D forts"));
+            await device.CreatePortMapAsync(new Mapping(Protocol.Tcp, lobbyDetailsPort, lobbyDetailsPort, 0, "3D forts Lobby"));
+            Debug.Log($"Opened port: {port}");
+            exteranlIp = ip.ToString();
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Error while opening nat: {e} \n only local games will be availble");
+        }
     }
     /// <summary>Sets up packet handlers</summary>
     private void InitializeServerData()
     {
         packetHandlers = new Dictionary<int, PacketHandler>()
             {
-                { (int)Packets.welcome, HandleWelcome }
+                { (int)Packets.welcome, HandleWelcome },
+                { (int)Packets.welcome, HandleMapDownload }
             };
         Debug.Log("Initialized packet handlers");
     }
@@ -103,7 +115,7 @@ public class Server : MonoBehaviour
         {
             Debug.Log($"{_client.Client.RemoteEndPoint} failed to connect: Server full!");
             return;
-        } 
+        }
         for (int i = 0; i < playerCapacity; i++)
         {
             foreach (List<Player> teams in lobby.map.teams)
@@ -121,14 +133,6 @@ public class Server : MonoBehaviour
             clients[i].tcp.Connect(_client);
             return;
         }
-    }
-
-    /// <summary>Send tcp data to single client</summary>
-    /// <param name="toClient">The ID of the client to send to</param>
-    /// <param name="packet">The packet to send</param>
-    private void SendTCPData(int toClient, Packet packet)
-    {
-        clients[toClient].tcp.SendData(packet);
     }
 
     /// <summary>Send tcp data to all connected clients</summary>
@@ -168,11 +172,32 @@ public class Server : MonoBehaviour
     {
         Packet packet = lobby.ToPacket((int)Packets.welcome);
         packet.Write(toClient);
-        SendTCPData(toClient, packet);
+        clients[toClient].tcp.SendData(packet);
     }
     public void SendLobbyUpdate()
     {
         SendTCPDataToAll(lobby.ToPacket((int)Packets.lobbyUpdate));
+    }
+    public void Disconnect(int id)
+    {
+        clients[id].tcp.socket.GetStream().Close();
+        clients[id].tcp.socket.Close();
+        clients.Remove(id);
+    }
+    public void Disconnect(int id, string reason)
+    {
+        using (Packet packet = new Packet((int)Packets.disconnect))
+        {
+            packet.Write(reason);
+            clients[id].tcp.SendData(packet);
+        }
+        StartCoroutine(DisconnectWithReason(id));
+
+    }
+    IEnumerator DisconnectWithReason(int id)
+    {
+        yield return new WaitForSeconds(0.5F);
+        Disconnect(id);
     }
     #endregion
 
@@ -187,7 +212,7 @@ public class Server : MonoBehaviour
         Player player = new Player(packet);
         int _clientIdCheck = packet.ReadInt();
         player.id = _clientIdCheck;
-        foreach(List<Player> team in lobby.map.teams)
+        foreach (List<Player> team in lobby.map.teams)
         {
             foreach (Player playerr in team)
             {
@@ -196,7 +221,7 @@ public class Server : MonoBehaviour
                     team.Add(player);
                 }
             }
-        
+
         }
         Debug.Log($"{clients[fromClient].tcp.socket.Client.RemoteEndPoint}/{player.name} connected successfully and is now player {fromClient}.");
         SendLobbyUpdate();
@@ -204,6 +229,10 @@ public class Server : MonoBehaviour
         {
             Debug.LogError($"Player {fromClient}) has assumed the wrong client ID ({_clientIdCheck})!");
         }
+    }
+    private void HandleMapDownload(int fromClient, Packet _packet)
+    {
+        clients[fromClient].tcp.SendData(lobby.ToPacket((int)Packets.MapDownloadRequest));
     }
     #endregion
 }

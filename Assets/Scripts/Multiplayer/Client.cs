@@ -7,6 +7,7 @@ using UnityEngine.UI;
 using System;
 using System.Reflection;
 using System.Security.Cryptography;
+using UnityEngine.UIElements;
 
 public class Client : MonoBehaviour
 {
@@ -21,7 +22,7 @@ public class Client : MonoBehaviour
     private int lobbyPort2 = 42071;
     private int lobbyDetailsPort = 42072;
     public string lobbyIp;
-    public int myId = 0;
+    public int myId = -1;
     public TCP tcp;
     public mainMenuScript mainMenu;
     private List<string> serverIps = new List<string>();
@@ -48,6 +49,7 @@ public class Client : MonoBehaviour
             { (int) Packets.requestLobbyList, HandleLobbyRequest},
             { (int) Packets.LobbyInfoRequest, HandleLobbyInfo},
             { (int) Packets.lobbyUpdate, HandleLobbyRefresh},
+            { (int) Packets.lobbyUpdate, HandleDownload},
         };
         print("Initzailzed packet handlers.");
     }
@@ -87,6 +89,14 @@ public class Client : MonoBehaviour
     #endregion
 
     #region Packet senders
+    private void SendMapDownloadRequest(string guid)
+    {
+        using (Packet packet = new Packet((int)Packets.MapDownloadRequest))
+        {
+            packet.Write(guid);
+            tcp.SendData(packet);
+        }
+    }
     #endregion
 
     #region Packet handlers
@@ -105,8 +115,23 @@ public class Client : MonoBehaviour
     }
     public void HandleLobbyRefresh(Packet packet)
     {
-        currentLobby = new Lobby(packet,(int)Packets.lobbyUpdate);
-        mainMenu.RefreshLobby(currentLobby);
+        bool downloading = false;
+        Guid mapGuid = new Guid(packet.ReadString());
+        foreach (Map map in mainMenu.maps)
+        {
+            if (map.guid != mapGuid)
+            {
+                continue;
+            }
+            Debug.Log("Downloading map from server");
+            SendMapDownloadRequest(mapGuid.ToString());
+            downloading = true;
+        }
+        if(downloading == false)
+        {
+            currentLobby = new Lobby(packet, (int)Packets.lobbyUpdate);
+            mainMenu.RefreshLobby(currentLobby);
+        }
     }
     public void HandleLobbyRequest(Packet packet)
     {
@@ -140,6 +165,11 @@ public class Client : MonoBehaviour
         mainMenu.addLobby(lobbyInfo);
         lobbies.Add(lobbyInfo);
         NextLobby();
+    }
+    private void HandleDownload(Packet packet)
+    {
+        currentLobby = new Lobby(packet, (int)Packets.MapDownloadRequest);
+        mainMenu.RefreshLobby(currentLobby);
     }
     #endregion
 

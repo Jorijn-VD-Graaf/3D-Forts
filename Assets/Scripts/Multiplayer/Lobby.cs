@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using System.Linq;
 
 public class Lobby
 {
@@ -11,9 +12,9 @@ public class Lobby
     public int maxPlayers;
     public bool passProtected;
     public GameObject uiElement;
-    public string gameMode;
     public Map map;
     public byte[] password;
+    public List<Player> spectators = new List<Player>();
 
     public Lobby(string hostIP, string name, int playersConnected, int maxPlayers, bool passProtected)
     {
@@ -42,8 +43,12 @@ public class Lobby
     }
     public Lobby(Packet packet, int type)
     {
-        if (type == (int)Packets.lobbyUpdate)
+        if (type == (int)Packets.lobbyUpdate|| type == (int)Packets.MapDownloadRequest)
         {
+            if (type == (int)Packets.MapDownloadRequest)
+            {
+                map = new Map(packet.ReadString(), packet.ReadString(), packet.ReadString(), packet.ReadBytes(packet.ReadInt()), packet.ReadInt(), packet.ReadInt(), packet.ReadBytes(packet.ReadInt()));
+            }
             int teamCount = packet.ReadInt();
             for (int i = 0; i < teamCount; i++)
             {
@@ -52,11 +57,24 @@ public class Lobby
                 map.teams.Add(team);
                 for (int i1 = 0; i1 < teamSize; i1++)
                 {
-                    team.Add(new Player(packet.ReadString(), packet.ReadInt(), packet.ReadInt(), packet.ReadString()));
+                    string name = packet.ReadString();
+                    if(name == "null")
+                    {
+                        team.Add(null);
+                    }
+                    else
+                    {
+                        team.Add(new Player(name, packet.ReadInt(), packet.ReadInt(), packet.ReadString()));
+                    }
                 }
             }
+            int amountOfSpectators = packet.ReadInt();
+            for (int i = 0; i < amountOfSpectators; i++)
+            {
+                spectators.Add(new Player(packet.ReadString(), packet.ReadInt(), packet.ReadInt(), packet.ReadString()));
+            }
             name = packet.ReadString();
-            map.UUID = new Guid(packet.ReadString());
+            map.guid = new Guid(packet.ReadString());
         }
     }
     /*
@@ -74,7 +92,7 @@ public class Lobby
     {
         if (type == (int)Packets.LobbyInfoRequest)
         {
-            using (Packet packet = new Packet((int)Packets.LobbyInfoRequest))
+            using (Packet packet = new Packet(type))
             {
                 packet.Write(name);
                 packet.Write(playersConnected);
@@ -83,24 +101,53 @@ public class Lobby
                 return packet;
             }
         }
-        if (type == (int)Packets.lobbyUpdate)
+        if (type == (int)Packets.lobbyUpdate|| type == (int)Packets.MapDownloadRequest)
         {
-            using (Packet packet = new Packet((int)Packets.lobbyUpdate))
+            using (Packet packet = new Packet(type))
             {
+                if (type == (int)Packets.MapDownloadRequest)
+                {
+                    SerializedMap map = new SerializedMap(this.map);
+                    packet.Write(map.name);
+                    packet.Write(map.guid);
+                    packet.Write(map.teamString);
+                    packet.Write(map.mapdata.Length);
+                    packet.Write(map.mapdata);
+                    packet.Write(map.thumbnail.x);
+                    packet.Write(map.thumbnail.y);
+                    packet.Write(map.thumbnail.bytes.Length);
+                    packet.Write(map.thumbnail.bytes);
+                }
+
                 packet.Write(map.teams.Count);
                 foreach (List<Player> item in map.teams)
                 {
                     packet.Write(item.Count);
                     foreach (Player player in item)
                     {
-                        packet.Write(player.name);
-                        packet.Write(player.losses);
-                        packet.Write(player.wins);
-                        packet.Write(player.rank);
+                        if (player != null)
+                        {
+                            packet.Write(player.name);
+                            packet.Write(player.losses);
+                            packet.Write(player.wins);
+                            packet.Write(player.rank);
+                        }
+                        else
+                        {
+                            packet.Write("null");
+                        }
                     }
                 }
+                packet.Write(spectators.Count);
+                foreach (Player player in spectators)
+                {
+                    packet.Write(player.name);
+                    packet.Write(player.losses);
+                    packet.Write(player.wins);
+                    packet.Write(player.rank);
+                }
                 packet.Write(name);
-                packet.Write(map.UUID.ToString());
+                packet.Write(map.guid.ToString());
                 return packet;
             }
         }
