@@ -1,6 +1,5 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using System;
@@ -8,6 +7,7 @@ using System.Security.Cryptography;
 using System.Text;
 using TMPro;
 using System.IO;
+using UnityEngine;
 
 public class mainMenuScript : MonoBehaviour
 {
@@ -17,6 +17,7 @@ public class mainMenuScript : MonoBehaviour
     public GameObject mainMenu;
     public GameObject grahpicsMenu;
     public GameObject gameplayMenu;
+    public GameObject networkMenu;
     public InputField playerName;
     public Text winLoss;
     public InputField rank;
@@ -25,8 +26,9 @@ public class mainMenuScript : MonoBehaviour
     public GameObject scale;
     public Dropdown quality;
     public GameObject displayMode;
+    public GameObject lobbyIpInput;
     public int fovInt;
-    public float scaleInt;
+    public float scaleFloat;
     public Client client;
     public Server server;
     public GameObject lobbyPrefab;
@@ -59,14 +61,16 @@ public class mainMenuScript : MonoBehaviour
     public TMP_InputField directConnectIpInput;
 
 
+
     #region start screen
     public void Start()
     {
         folders.Add("maps", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games", "3D Forts", "Maps"));
         if (PlayerPrefs.HasKey("UiScale"))
         {
-            scaleInt = PlayerPrefs.GetFloat("UiScale");
-            transform.gameObject.GetComponent<CanvasScaler>().scaleFactor = scaleInt;
+            scaleFloat = PlayerPrefs.GetFloat("UiScale");
+            transform.gameObject.GetComponent<CanvasScaler>().scaleFactor = scaleFloat;
+            scale.GetComponent<TMP_Dropdown>().value = (int)((int) (2F * (1920F *  scaleFloat / Screen.currentResolution.width)) - 1F);
         }
         if (PlayerPrefs.HasKey("PlayerName"))
         {
@@ -87,7 +91,7 @@ public class mainMenuScript : MonoBehaviour
         }
 
         //SaveMap(new Map("Testmap2",testMapSprite, new List<List<Player>>() { new List<Player>() { null }, new List<Player>() { null } }, Guid.NewGuid()));
-        //SaveMap(new Map("Testmap",testMapSprite, new List<List<Player>>() { new List<Player>() { null,null, null }, new List<Player>() { null, null }, new List<Player>() { null, null, null } }, Guid.NewGuid()));
+       //SaveMap(new Map("Testmap",testMapSprite, new List<List<Player>>() { new List<Player>() { null,null, null }, new List<Player>() { null, null }, new List<Player>() { null, null, null } }, Guid.NewGuid()));
     }
     public void SaveMap(Map map)
     {
@@ -123,7 +127,6 @@ public class mainMenuScript : MonoBehaviour
         optionsMenu.SetActive(true);
         mainMenu.SetActive(false);
         resolution.GetComponent<InputField>().text = Screen.currentResolution.width + "x" + Screen.currentResolution.height;
-        scale.GetComponent<InputField>().text = scaleInt.ToString();
         quality.value = QualitySettings.GetQualityLevel();
         playerName.text = player.name;
         winLoss.text = $"{player.wins}/{player.losses}";
@@ -163,15 +166,23 @@ public class mainMenuScript : MonoBehaviour
         optionsMenu.SetActive(false);
         mainMenu.SetActive(true);
     }
-    public void Grahpics()
-    {
-        grahpicsMenu.SetActive(true);
-        gameplayMenu.SetActive(false);
-    }
-    public void Gameplay()
+    public void SwitchTab(int tab)
     {
         grahpicsMenu.SetActive(false);
-        gameplayMenu.SetActive(true);
+        gameplayMenu.SetActive(false);
+        networkMenu.SetActive(false);
+        switch (tab)
+        {
+            case 0:
+                grahpicsMenu.SetActive(true);
+                break;
+            case 1:
+                networkMenu.SetActive(true);
+                break;
+            case 2:
+                gameplayMenu.SetActive(true);
+                break;
+        }
     }
     #region Gameplay
     public void SetName()
@@ -206,6 +217,7 @@ public class mainMenuScript : MonoBehaviour
     {
         yield return new WaitForSeconds(0.1F);
         resolution.GetComponent<InputField>().text = Screen.currentResolution.width + "x" + Screen.currentResolution.height;
+
         setScale();
     }
     public void setFOV()
@@ -215,13 +227,12 @@ public class mainMenuScript : MonoBehaviour
         fovInt = Int32.Parse(fov.GetComponent<InputField>().text);
         PlayerPrefs.SetInt("FOV", Int32.Parse(fov.GetComponent<InputField>().text));
     }
+
     public void setScale()
     {
-        if (double.Parse(scale.GetComponent<InputField>().text) > (double)Screen.currentResolution.width / 768) { scale.GetComponent<InputField>().text = ((double)Screen.currentResolution.width / 768).ToString(); }
-        if ((double)Screen.currentResolution.width / 3840 > double.Parse(scale.GetComponent<InputField>().text)) { scale.GetComponent<InputField>().text = ((double)Screen.currentResolution.width / 3840).ToString(); }
-        scaleInt = float.Parse(scale.GetComponent<InputField>().text);
-        transform.gameObject.GetComponent<CanvasScaler>().scaleFactor = scaleInt;
-        PlayerPrefs.SetFloat("UiScale", scaleInt);
+        scaleFloat = (Screen.currentResolution.width / 1920) * ((float) (scale.GetComponent<TMP_Dropdown>().value + 1) / 2);
+        transform.gameObject.GetComponent<CanvasScaler>().scaleFactor = scaleFloat;
+        PlayerPrefs.SetFloat("UiScale", scaleFloat);
     }
     public void setQuality()
     {
@@ -245,6 +256,12 @@ public class mainMenuScript : MonoBehaviour
         }
         Screen.SetResolution(Screen.currentResolution.width, Screen.currentResolution.height, screenMode);
 
+    }
+    #endregion
+    #region network
+    public void SetLobbyIp()
+    {
+        client.lobbyIp = lobbyIpInput.GetComponent<TMP_InputField>().text;
     }
     #endregion
     #endregion
