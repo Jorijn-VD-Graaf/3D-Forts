@@ -8,11 +8,11 @@ using System.Text;
 using TMPro;
 using System.IO;
 using UnityEngine;
+using System.Net.Http;
+using System.Linq;
 
 public class mainMenuScript : MonoBehaviour
 {
-    // Start is called before the first frame update
-
     public GameObject optionsMenu;
     public GameObject mainMenu;
     public GameObject grahpicsMenu;
@@ -41,7 +41,7 @@ public class mainMenuScript : MonoBehaviour
     public GameObject lobbyMapScrollview;
     public TMP_Text selectedMap;
     public TMP_InputField lobbyName;
-    public List<Map> maps = new List<Map>();
+    public Dictionary<Guid, Map> maps = new Dictionary<Guid, Map>();
     public GameObject lobbyScreen;
     public GameObject lobbySelector;
     public GameObject playerCreator;
@@ -59,7 +59,8 @@ public class mainMenuScript : MonoBehaviour
     public GameObject cantConnect;
     public GameObject directConnectIp;
     public TMP_InputField directConnectIpInput;
-
+    public GameObject lobbyScrollview;
+    private List<GameObject> lobbies = new List<GameObject>();
 
 
     #region start screen
@@ -70,7 +71,7 @@ public class mainMenuScript : MonoBehaviour
         {
             scaleFloat = PlayerPrefs.GetFloat("UiScale");
             transform.gameObject.GetComponent<CanvasScaler>().scaleFactor = scaleFloat;
-            scale.GetComponent<TMP_Dropdown>().value = (int)((int) (2F * (1920F *  scaleFloat / Screen.currentResolution.width)) - 1F);
+            scale.GetComponent<TMP_Dropdown>().value = (int)((int)(2F * (1920F * scaleFloat / Screen.currentResolution.width)) - 1F);
         }
         if (PlayerPrefs.HasKey("PlayerName"))
         {
@@ -91,7 +92,7 @@ public class mainMenuScript : MonoBehaviour
         }
 
         //SaveMap(new Map("Testmap2",testMapSprite, new List<List<Player>>() { new List<Player>() { null }, new List<Player>() { null } }, Guid.NewGuid()));
-       //SaveMap(new Map("Testmap",testMapSprite, new List<List<Player>>() { new List<Player>() { null,null, null }, new List<Player>() { null, null }, new List<Player>() { null, null, null } }, Guid.NewGuid()));
+        //SaveMap(new Map("Testmap",testMapSprite, new List<List<Player>>() { new List<Player>() { null,null, null }, new List<Player>() { null, null }, new List<Player>() { null, null, null } }, Guid.NewGuid()));
     }
     public void SaveMap(Map map)
     {
@@ -109,8 +110,7 @@ public class mainMenuScript : MonoBehaviour
         //     Debug.LogError($"Map {map.name} already exists");
         // }
     }
-
-    public List<Map> LoadMaps()
+    public void LoadMaps()
     {
         Debug.Log("Loading maps");
         string[] paths = Directory.GetFiles(folders["maps"]);
@@ -119,8 +119,11 @@ public class mainMenuScript : MonoBehaviour
         {
             loadedMaps.Add(new Map(JsonUtility.FromJson<SerializedMap>(File.ReadAllText(path))));
         }
+        foreach (Map map in loadedMaps)
+        {
+            maps.Add(map.guid, map);
+        }
         Debug.Log("Finsihed loading maps");
-        return loadedMaps;
     }
     public void options()
     {
@@ -138,7 +141,7 @@ public class mainMenuScript : MonoBehaviour
         {
             mainMenu.SetActive(false);
             lobbySelector.SetActive(true);
-            RefreshLobbies();
+            InvokeRepeating("RefreshLobbies", 0.1f, 5f);
         }
         else
         {
@@ -212,7 +215,6 @@ public class mainMenuScript : MonoBehaviour
         Screen.SetResolution(res[0], res[1], Screen.fullScreen);
         StartCoroutine(updateRes());
     }
-
     IEnumerator updateRes()
     {
         yield return new WaitForSeconds(0.1F);
@@ -227,10 +229,9 @@ public class mainMenuScript : MonoBehaviour
         fovInt = Int32.Parse(fov.GetComponent<InputField>().text);
         PlayerPrefs.SetInt("FOV", Int32.Parse(fov.GetComponent<InputField>().text));
     }
-
     public void setScale()
     {
-        scaleFloat = (Screen.currentResolution.width / 1920) * ((float) (scale.GetComponent<TMP_Dropdown>().value + 1) / 2);
+        scaleFloat = (Screen.currentResolution.width / 1920) * ((float)(scale.GetComponent<TMP_Dropdown>().value + 1) / 2);
         transform.gameObject.GetComponent<CanvasScaler>().scaleFactor = scaleFloat;
         PlayerPrefs.SetFloat("UiScale", scaleFloat);
     }
@@ -266,29 +267,49 @@ public class mainMenuScript : MonoBehaviour
     #endregion
     #endregion
     #region lobby selector
-    public void addLobby(Lobby lobby)
+    public async void RefreshLobbies()
     {
-        lobby.uiElement = Instantiate(lobbyPrefab);
-        lobby.uiElement.GetComponent<Button>().onClick.AddListener(() => JoinLobby(lobby));
-    }
-    public void RefreshLobbies()
-    {
-        client.StartClient();
-        client.GetLobbyList();
+        foreach (GameObject lobby in lobbies)
+        {
+            Destroy(lobby);
+        }
+        lobbies.Clear();
+        HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, client.lobbyIp);
+        request.Headers.Add("type", "GetLobbyList");
+        HttpResponseMessage response = await client.http.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+        string responseBody = await response.Content.ReadAsStringAsync();
+        string[] responseSplit = responseBody.Split('\n');
+        int index = 0;
+        for (int i = 0; i < responseSplit.Length / 5; i++)
+        {
+            GameObject lobby = Instantiate(lobbyPrefab, lobbyScrollview.transform);
+            lobby.transform.localPosition = new Vector3(0, -144 * i, 0);
+            lobby.transform.GetChild(1).gameObject.GetComponent<TMP_Text>().text = responseSplit[index];
+            lobby.transform.GetChild(2).gameObject.GetComponent<Text>().text = $"{responseSplit[index + 1]}/{responseSplit[index + 2]}";
+            if (bool.Parse(responseSplit[index + 4])) { lobby.transform.GetChild(3).gameObject.SetActive(true); }
+            lobbies.Add(lobby);
+            lobbyScrollview.GetComponent<RectTransform>().sizeDelta = new Vector2(0, lobbies.Count * 144);
+            string ip = responseSplit[index + 3];
+            lobby.GetComponent<Button>().onClick.AddListener(() => JoinLobby(ip));
+            index += 5;
+        }
+
     }
     public void HostLobby()
     {
         lobbySelector.SetActive(false);
         lobbyScreen.SetActive(true);
-        maps = LoadMaps();
-        server.lobby = new Lobby(player.name + "'s lobby ", 1, 1, maps[0]);
-        SelectMap(maps[0]);
+        LoadMaps();
+        server.lobby = new Lobby(player.name + "'s lobby ", maps.First().Value);
+        SelectMap(maps.First().Value);
         float takenHeight = -28.74F;
-        for (int i = 0; i < maps.Count; i++)
+        List<Map> mapss = maps.Values.ToList();
+        for (int i = 0; i < mapss.Count; i++)
         {
-            Map map = maps[i];
+            Map map = mapss[i];
             GameObject mapGO = Instantiate(lobbyMapPrefab, mapSelectorScrollview.transform);
-            mapGO.transform.GetChild(0).GetComponent<TextMeshProUGUI>().text = maps[i].name + "\n" + maps[i].teamString;
+            mapGO.transform.GetChild(0).GetComponent<TextMeshProUGUI>().text = mapss[i].name + "\n" + mapss[i].teamString;
             mapGO.transform.localPosition = new Vector3(mapGO.transform.localPosition.x, takenHeight, 0);
             mapGO.GetComponent<Button>().onClick.AddListener(() => SelectMap(map));
             EventTrigger.Entry eventtype = new EventTrigger.Entry();
@@ -301,14 +322,16 @@ public class mainMenuScript : MonoBehaviour
         server.StartServer();
         server.lobby.map.teams[0][0] = player;
         RefreshLobby(server.lobby);
+        CancelInvoke("RefreshLobbies");
     }
-
-    public void JoinLobby(Lobby lobby)
+    public void JoinLobby(string ip)
     {
-        maps = LoadMaps();
+        client.StartClient();
+        LoadMaps();
         lobbySelector.SetActive(false);
         lobbyScreen.SetActive(true);
-        client.JoinLobby(lobby);
+        client.JoinLobby(ip);
+        CancelInvoke("RefreshLobbies");
     }
     public void ShowDisconnect(string reason)
     {
@@ -324,7 +347,7 @@ public class mainMenuScript : MonoBehaviour
     }
     public void DirectConnect()
     {
-        maps = LoadMaps();
+        LoadMaps();
         lobbySelector.SetActive(false);
         lobbyScreen.SetActive(true);
         client.JoinLobby(directConnectIpInput.text);
@@ -351,7 +374,7 @@ public class mainMenuScript : MonoBehaviour
         server.lobby.teams[gameObject.transform.GetSiblingIndex()].Add(null);
     }
     */
-    public void ChangeVisibilty()
+    public async void ChangeVisibilty()
     {
         /*
         if(server.openNat == false && publicictyChooser.value == 2)
@@ -359,10 +382,33 @@ public class mainMenuScript : MonoBehaviour
             publicictyChooser.value = 1;
             Debug.LogError("Can't change to public due to NAT failure");
         }
-        else*/
-        //{
-            server.ChangeVisibilty(publicictyChooser.value);
-        //}
+        else
+        {
+        */
+        // }
+        HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, client.lobbyIp);
+        switch (publicictyChooser.value)
+        {
+            case 0:
+            case 1:
+                request.Headers.Add("type", "CloseLobby");
+                request.Content = new StringContent(server.externalIp, Encoding.UTF8);
+                break;
+            case 2:
+                request.Headers.Add("type", "LobbyCreate");
+                request.Content = new StringContent($"{server.lobby.name}\n{server.lobby.map.teams.SelectMany(x => x).ToList().Where(x => x != null).ToList().Count}\n{server.lobby.map.teams.SelectMany(x => x).ToList().Count}\n{server.externalIp}\n{server.lobby.passProtected}", Encoding.UTF8);
+                break;
+        }
+        HttpResponseMessage response = await client.http.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+    }
+    public async void UpdateLobby()
+    {
+        HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, client.lobbyIp);
+        request.Headers.Add("type", "LobbyCreate");
+        request.Content = new StringContent($"{server.lobby.name}\n{server.lobby.map.teams.SelectMany(x => x).ToList().Where(x => x != null).ToList().Count}\n{server.lobby.map.teams.SelectMany(x => x).ToList().Count}\n{server.externalIp}\n{server.lobby.passProtected}", Encoding.UTF8);
+        HttpResponseMessage response = await client.http.SendAsync(request);
+        response.EnsureSuccessStatusCode();
     }
     public void SetPassword(string password)
     {
@@ -444,17 +490,9 @@ public class mainMenuScript : MonoBehaviour
     #region client
 
     #endregion
-
     public void takeSlot(int team, int slot)
     {
-        if (client.myId != -1)
-        {
-            if (client.currentLobby.map.teams[team][slot] == null)
-            {
-                //client.takeSlot(team, slot)
-            }
-        }
-        else
+        if (server.running)
         {
             if (server.lobby.map.teams[team][slot] == null)
             {
@@ -469,6 +507,7 @@ public class mainMenuScript : MonoBehaviour
                         }
                     }
                 }
+
                 for (int i = 0; i < server.lobby.spectators.Count; i++)
                 {
                     if (server.lobby.spectators[i] == player)
@@ -478,15 +517,17 @@ public class mainMenuScript : MonoBehaviour
                     }
                 }
                 server.lobby.map.teams[team][slot] = player;
-                if (server.running == true)
-                {
-                    server.SendLobbyUpdate();
-                }
-                RefreshLobby(server.lobby);
+                server.SendLobbyUpdate();
+            }
+        }
+        else
+        {
+            if (client.lobby.map.teams[team][slot] == null)
+            {
+                client.SendSlotSwitch(team,slot);
             }
         }
     }
-
     public void JoinSpectator()
     {
         if (client.myId != -1)
@@ -555,7 +596,7 @@ public class mainMenuScript : MonoBehaviour
                     playerGameObject.transform.GetChild(2).gameObject.GetComponent<TextMeshProUGUI>().text = team[i].rank;
                     playerGameObject.transform.GetChild(1).gameObject.GetComponent<TextMeshProUGUI>().text = $"{team[i].ping}ms";
                     int index = i;
-                    if (client.myId == -1&&team[i] != player)
+                    if (client.myId == -1 && team[i] != player)
                     {
                         playerGameObject.transform.GetChild(4).gameObject.SetActive(true);
                         playerGameObject.transform.GetChild(4).gameObject.GetComponent<Button>().onClick.AddListener(() => server.Disconnect(team[index].id));
@@ -577,6 +618,10 @@ public class mainMenuScript : MonoBehaviour
             takenRoom -= 30.813F;
             rectt.sizeDelta = new Vector2(rectt.sizeDelta.x, Math.Abs(takenRoom - 10F));
             slot.transform.GetChild(0).GetComponent<TextMeshProUGUI>().text = $"{player.name}  {player.wins}/{player.losses}  {player.rank}";
+        }
+        if (server.externalIp != "" && publicictyChooser.value == 2)
+        {
+            UpdateLobby();
         }
     }
     #endregion

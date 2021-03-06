@@ -1,10 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "GeuVtC0X3x0nxHac0i4nm+FeKbfrivj8ImU5AzBs0H8fKt/+Yp8UiZog0AdxQp7ZZHEj2VoMMmi5QobEHYtFmw==",
+  "dgSpecHash": "KrKsh8iJRYXJQ9jQDGre2bJtKsTKzMz+fdFDasFWlsmfGk4/3txwCKZ18YMUlQEv8fQvocWdvd2CwpaBuuRqlQ==",
   "success": true,
-  "projectFilePath": "C:\\Users\\fakea\\Documents\\3D_FORTS\\3D-Forts\\LobbyServer\\LobbyServer.csproj",
-  "expectedPackageFiles": [
-    "C:\\Users\\fakea\\.nuget\\packages\\open.nat.core\\2.1.0.5\\open.nat.core.2.1.0.5.nupkg.sha512"
-  ],
+  "projectFilePath": "C:\\Users\\fakea\\Documents\\3D-Forts\\LobbyServer\\3DFortsLobbyServer.csproj",
+  "expectedPackageFiles": [],
   "logs": []
 }

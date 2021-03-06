@@ -6,7 +6,6 @@ using UnityEngine;
 [Serializable]
 public class Player
 {
-    public int team;
     public string name;
     public int id;
     public int losses;

@@ -8,28 +8,23 @@ using System;
 using System.Reflection;
 using System.Security.Cryptography;
 using UnityEngine.UIElements;
+using System.Net.Http;
 
 public class Client : MonoBehaviour
 {
     /// <summary>Size in bytes of the data buffer</summary>
     public static int dataBufferSize = 4096;
-
     public InputField ipInput;
-
-    private string ip;
     private int port = 42069;
-    private int lobbyPort = 42070;
-    private int lobbyPort2 = 42071;
-    private int lobbyDetailsPort = 42072;
     public string lobbyIp;
     public int myId = -1;
     public TCP tcp;
     public mainMenuScript mainMenu;
-    private List<string> serverIps = new List<string>();
     private delegate void PacketHandler(Packet packet);
     private static Dictionary<int, PacketHandler> packetHandlers;
     public List<Lobby> lobbies = new List<Lobby>();
-    public Lobby currentLobby;
+    public Lobby lobby;
+    public readonly HttpClient http = new HttpClient();
 
     #region Startup
     /// <summary>
@@ -46,8 +41,6 @@ public class Client : MonoBehaviour
         packetHandlers = new Dictionary<int, PacketHandler>()
         {
             { (int) Packets.welcome, HandleWelcome},
-            { (int) Packets.requestLobbyList, HandleLobbyRequest},
-            { (int) Packets.LobbyInfoRequest, HandleLobbyInfo},
             { (int) Packets.lobbyUpdate, HandleLobbyRefresh},
             { (int) Packets.MapDownloadRequest, HandleDownload},
             { (int) Packets.disconnect, HandleDisconnect},
@@ -61,57 +54,9 @@ public class Client : MonoBehaviour
     {
         tcp.socket.Dispose();
     }
-    public void GetLobbyList()
-    {
-        try
-        {
-            tcp.Connect(lobbyIp, lobbyPort);
-        }
-        catch (Exception e)
-        {
-            Debug.LogWarning($"Couldn't connect to lobby server: {e}");
-            mainMenu.cantConnect.SetActive(true);
-        }
-    }
-    public void RegisterLobby(string ip)
-    {
-        tcp.Connect(lobbyIp, lobbyPort2);
-        StartCoroutine(ExampleCoroutine(ip));
-    }
-    public void UnregisterLobby(string ip)
-    {
-        tcp.Connect(lobbyIp, lobbyPort2);
-        StartCoroutine(UnregisterLobbyCoroutine(ip));
-    }
-    IEnumerator UnregisterLobbyCoroutine(string ip)
-    {
-        yield return new WaitForSeconds(0.5F);
-        using (Packet _packet = new Packet((int)Packets.unRegisterLobby))
-        {
-            _packet.Write(ip);
-            tcp.SendData(_packet);
-        }
-
-    }
-    public void JoinLobby(Lobby lobby)
-    {
-        tcp.Connect(ip, port);
-        currentLobby = lobby;
-    }
     public void JoinLobby(string ip)
     {
         tcp.Connect(ip, port);
-    }
-    IEnumerator ExampleCoroutine(string ip)
-    {
-        yield return new WaitForSeconds(0.5F);
-        using (Packet _packet = new Packet((int)Packets.registerLobby))
-        {
-            //_packet.Write(ip);
-            _packet.Write("172.17.155.161");
-            tcp.SendData(_packet);
-        }
-
     }
     #endregion
 
@@ -124,6 +69,15 @@ public class Client : MonoBehaviour
             tcp.SendData(packet);
         }
     }
+    public void SendSlotSwitch(int team, int slot)
+    {
+        using (Packet packet = new Packet((int)Packets.SlotSwitch))
+        {
+            packet.Write(team);
+            packet.Write(slot);
+            tcp.SendData(packet);
+        }
+    }
     #endregion
 
     #region Packet handlers
@@ -133,75 +87,72 @@ public class Client : MonoBehaviour
     /// <param name="packet">Recieved packet</param>
     public void HandleWelcome(Packet packet)
     {
-        HandleLobbyRefresh(packet);
-        int _myId = packet.ReadInt();
-        myId = _myId;
-        Packet _packet = mainMenu.player.ToPacket((int)Packets.welcome);
-        _packet.Write(myId);
-        tcp.SendData(_packet);
+        Debug.Log("Handeling Welcome");
+        try
+        {
+            using (Packet _packet = new Packet((int)Packets.welcome))
+            {
+                int _myId = packet.ReadInt();
+                myId = _myId;
+                Debug.Log($"Assigned ID: {myId}");
+                _packet.Write(myId);
+                _packet.Write(mainMenu.player.name);
+                _packet.Write(mainMenu.player.losses);
+                _packet.Write(mainMenu.player.wins);
+                _packet.Write(mainMenu.player.rank);
+                tcp.SendData(_packet);
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Error while handeling welcome: {e}");
+        }
     }
     public void HandleDisconnect(Packet packet)
     {
+        Debug.Log("Handeling Disconnect");
         string reason = packet.ReadString();
         mainMenu.ShowDisconnect(reason);
     }
     public void HandleLobbyRefresh(Packet packet)
     {
-        bool downloading = false;
-        Guid mapGuid = new Guid(packet.ReadString());
-        foreach (Map map in mainMenu.maps)
-        {
-            if (map.guid != mapGuid)
-            {
-                continue;
-            }
-            Debug.Log("Downloading map from server");
-            SendMapDownloadRequest(mapGuid.ToString());
-            downloading = true;
-        }
-        if(downloading == false)
-        {
-            currentLobby = new Lobby(packet, (int)Packets.lobbyUpdate);
-            mainMenu.RefreshLobby(currentLobby);
-        }
-    }
-    public void HandleLobbyRequest(Packet packet)
-    {
-        int amount = packet.ReadInt();
-        for (int i = 0; i < amount; i++)
-        {
-            string ip = packet.ReadString();
-            string[] ipSplit = ip.Split(':');
-            serverIps.Add(ipSplit[0]);
-        }
-        NextLobby();
-    }
-    private void NextLobby()
-    {
-        tcp.socket.Dispose();
-        print(serverIps[0]);
+        Debug.Log("Handeling Lobby Refresh");
         try
         {
-            tcp.Connect(serverIps[0], lobbyDetailsPort);
+            //bool downloading = false;
+            //Guid mapGuid = new Guid(packet.ReadString());
+            /*
+            foreach (Map map in mainMenu.maps)
+            {
+                if (map.guid != mapGuid)
+                {
+                    continue;
+                }
+                Debug.Log("Downloading map from server");
+                SendMapDownloadRequest(mapGuid.ToString());
+                downloading = true;
+            }
+            */
+            //if(downloading == false)
+            //{
+            Guid mapid = Guid.Parse(packet.ReadString());
+            lobby = new Lobby(packet, (int)Packets.lobbyUpdate, mainMenu.maps[mapid]);
+            UnityMainThread.wkr.AddJob(() =>
+            {
+                mainMenu.RefreshLobby(lobby);
+            });
+            //}
         }
         catch (Exception e)
         {
-            Debug.LogError(e);
+            Debug.LogError($"Error while handeling lobby refresh: {e}");
         }
-        serverIps.RemoveAt(0);
-    }
-    public void HandleLobbyInfo(Packet packet)
-    {
-        Lobby lobbyInfo = new Lobby("", packet.ReadString(), packet.ReadInt(), packet.ReadInt(), packet.ReadBool());
-        print(lobbyInfo.hostIP + lobbyInfo.name);
-        mainMenu.addLobby(lobbyInfo);
-        lobbies.Add(lobbyInfo);
-        NextLobby();
     }
     private void HandleDownload(Packet packet)
     {
-        currentLobby = new Lobby(packet, (int)Packets.MapDownloadRequest);
-        mainMenu.RefreshLobby(currentLobby);
+        Debug.Log("Handeling Map Download");
+        //lobby = new Lobby(packet, (int)Packets.MapDownloadRequest);
+        mainMenu.RefreshLobby(lobby);
     }
     #endregion
 
@@ -247,7 +198,7 @@ public class Client : MonoBehaviour
             {
                 return;
             }
-            print($"connected to {socket.Client.RemoteEndPoint}");
+            Debug.Log($"connected to {socket.Client.RemoteEndPoint}");
             stream = socket.GetStream();
 
             receivedData = new Packet();
@@ -290,13 +241,12 @@ public class Client : MonoBehaviour
                 }
                 byte[] data = new byte[byteLenght];
                 Array.Copy(receiveBuffer, data, byteLenght);
-
                 receivedData.Reset(HandleData(data));
                 stream.BeginRead(receiveBuffer, 0, dataBufferSize, ReceiveCallback, null);
             }
-            catch
+            catch (Exception e)
             {
-
+                print(e);
             }
         }
         /// <summary>
@@ -307,9 +257,7 @@ public class Client : MonoBehaviour
         private bool HandleData(byte[] data)
         {
             int packetLength = 0;
-
             receivedData.SetBytes(data);
-
             //first 4 bytes are packet size
             if (receivedData.UnreadLength() >= 4)
             {
@@ -328,7 +276,6 @@ public class Client : MonoBehaviour
                     int packetId = packet.ReadInt();
                     packetHandlers[packetId](packet);
                 }
-
                 packetLength = 0;
                 if (receivedData.UnreadLength() >= 4)
                 {

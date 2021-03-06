@@ -1,45 +1,11 @@
 {
   "version": 3,
   "targets": {
-    ".NETCoreApp,Version=v3.1": {
-      "Open.NAT.Core/2.1.0.5": {
-        "type": "package",
-        "compile": {
-          "lib/netstandard2.0/Open.Nat.dll": {}
-        },
-        "runtime": {
-          "lib/netstandard2.0/Open.Nat.dll": {}
-        }
-      }
-    }
+    ".NETCoreApp,Version=v3.1": {}
   },
-  "libraries": {
-    "Open.NAT.Core/2.1.0.5": {
-      "sha512": "F/4WoNK1rYCMGZM6B1LVlgxf2wLogJc2ohMZxwmJw7Aky2Hc1IgFZvEj/cxcv5QQSFTvPN5AWYKomFXHukOUIg==",
-      "type": "package",
-      "path": "open.nat.core/2.1.0.5",
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "lib/net35/Open.Nat.dll",
-        "lib/net35/Open.Nat.pdb",
-        "lib/net35/System.Threading.dll",
-        "lib/net45/Open.Nat.dll",
-        "lib/net45/Open.Nat.pdb",
-        "lib/net472/Open.Nat.dll",
-        "lib/net472/Open.Nat.pdb",
-        "lib/netstandard2.0/Open.Nat.deps.json",
-        "lib/netstandard2.0/Open.Nat.dll",
-        "lib/netstandard2.0/Open.Nat.pdb",
-        "open.nat.core.2.1.0.5.nupkg.sha512",
-        "open.nat.core.nuspec"
-      ]
-    }
-  },
+  "libraries": {},
   "projectFileDependencyGroups": {
-    ".NETCoreApp,Version=v3.1": [
-      "Open.NAT.Core >= 2.1.0.5"
-    ]
+    ".NETCoreApp,Version=v3.1": []
   },
   "packageFolders": {
     "C:\\Users\\fakea\\.nuget\\packages\\": {}
@@ -47,11 +13,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\fakea\\Documents\\3D_FORTS\\3D-Forts\\LobbyServer\\LobbyServer.csproj",
-      "projectName": "LobbyServer",
-      "projectPath": "C:\\Users\\fakea\\Documents\\3D_FORTS\\3D-Forts\\LobbyServer\\LobbyServer.csproj",
+      "projectUniqueName": "C:\\Users\\fakea\\Documents\\3D-Forts\\LobbyServer\\3DFortsLobbyServer.csproj",
+      "projectName": "3DFortsLobbyServer",
+      "projectPath": "C:\\Users\\fakea\\Documents\\3D-Forts\\LobbyServer\\3DFortsLobbyServer.csproj",
       "packagesPath": "C:\\Users\\fakea\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\fakea\\Documents\\3D_FORTS\\3D-Forts\\LobbyServer\\obj\\",
+      "outputPath": "C:\\Users\\fakea\\Documents\\3D-Forts\\LobbyServer\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\fakea\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -77,12 +43,6 @@
     },
     "frameworks": {
       "netcoreapp3.1": {
-        "dependencies": {
-          "Open.NAT.Core": {
-            "target": "Package",
-            "version": "[2.1.0.5, )"
-          }
-        },
         "imports": [
           "net461",
           "net462",
@@ -98,7 +58,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.402\\RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.301\\RuntimeIdentifierGraph.json"
       }
     }
   }

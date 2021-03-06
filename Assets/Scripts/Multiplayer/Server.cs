@@ -8,27 +8,25 @@ using System.Threading.Tasks;
 using System.Threading;
 using UnityEngine;
 using System.Collections;
+using System.Linq;
 
 public class Server : MonoBehaviour
 {
     /// <summary>Maximum players allowed in lobby</summary>
     public int maxPlayers;
     public int port;
-    public int lobbyDetailsPort = 42072;
-    private string exteranlIp;
     /// <summary>List of connected clients</summary>
     public Dictionary<int, ServerClient> clients = new Dictionary<int, ServerClient>();
     public delegate void PacketHandler(int _fromClient, Packet _packet);
     public Dictionary<int, PacketHandler> packetHandlers;
     private TcpListener tcpListener;
-    private TcpListener lobbyTcpListener;
     public Lobby lobby;
     public Client client;
     public string externalIp = null;
     public bool openNat = false;
     public bool running = false;
-    public bool registered = false;
     public int visibilty = 0;
+    public bool forceLocal = false;
 
     #region Startup
     /// <summary>Starts server and opens port</summary>
@@ -36,12 +34,27 @@ public class Server : MonoBehaviour
     {
         running = true;
         Debug.Log("Starting server...");
-        await OpenPort();
+        if (!forceLocal)
+        {
+            await OpenPort();
+            tcpListener = new TcpListener(IPAddress.Any, port);
+        }
+        else
+        {
+            Debug.LogWarning("Force local mode is turned on, online play is not availble");
+            IPAddress localIP = null;
+            using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, 0))
+            {
+                socket.Connect("8.8.8.8", 65530);
+                IPEndPoint endPoint = socket.LocalEndPoint as IPEndPoint;
+                localIP = endPoint.Address;
+                externalIp = endPoint.ToString().Split(':')[0];
+            }
+            tcpListener = new TcpListener(localIP, port);
+        }
         InitializeServerData();
-        tcpListener = new TcpListener(IPAddress.Any, port);
         tcpListener.Start();
         tcpListener.BeginAcceptTcpClient(TCPConnectCallback, null);
-        lobbyTcpListener = new TcpListener(IPAddress.Any, lobbyDetailsPort);
         Debug.Log($"Server started on port {port}.");
     }
     /// <summary>Opens port via open.nat</summary>
@@ -55,11 +68,9 @@ public class Server : MonoBehaviour
             var ip = await device.GetExternalIPAsync();
 
             Debug.Log($"Your IP: {ip}");
-
             await device.CreatePortMapAsync(new Mapping(Protocol.Tcp, port, port, 0, "3D forts"));
-            await device.CreatePortMapAsync(new Mapping(Protocol.Tcp, lobbyDetailsPort, lobbyDetailsPort, 0, "3D forts Lobby"));
             Debug.Log($"Opened port: {port}");
-            exteranlIp = ip.ToString();
+            externalIp = ip.ToString();
             openNat = true;
         }
         catch (Exception e)
@@ -74,53 +85,15 @@ public class Server : MonoBehaviour
         packetHandlers = new Dictionary<int, PacketHandler>()
             {
                 { (int)Packets.welcome, HandleWelcome },
-                { (int)Packets.MapDownloadRequest, HandleMapDownload }
+                { (int)Packets.MapDownloadRequest, HandleMapDownload },
+                { (int)Packets.SlotSwitch, HandleSlotSwitch }
             };
         Debug.Log("Initialized packet handlers");
-    }
-    public void ChangeVisibilty(int newVisibilty)
-    {
-        if (newVisibilty < 2&&visibilty == 2)
-        {
-            lobbyTcpListener.Stop();
-            if (registered)
-            {
-                client.UnregisterLobby(externalIp);
-            }
-        } else if (newVisibilty == 2)
-        {
-            lobbyTcpListener.Start();
-            lobbyTcpListener.BeginAcceptTcpClient(LobbyTCPConnectCallback, null);
-            //if(openNat == true&&!registered)
-            //{
-                client.StartClient();
-                client.RegisterLobby(exteranlIp);
-                registered = true;
-            //}
-        }
-        //test
-        visibilty = newVisibilty;
     }
     #endregion
 
     #region TCP methods
     /// <summary>Runs whenever a client tries to connect</summary>
-    private void LobbyTCPConnectCallback(IAsyncResult _result)
-    {
-        try
-        {
-            TcpClient _client = lobbyTcpListener.EndAcceptTcpClient(_result);
-            lobbyTcpListener.BeginAcceptTcpClient(LobbyTCPConnectCallback, null);
-            Debug.Log($"Incoming Lobby info request from {_client.Client.RemoteEndPoint}...");
-            ServerClient client = new ServerClient(0, this);
-            client.tcp.Connect(_client, true);
-            client.tcp.SendData(lobby.ToPacket((int)Packets.LobbyInfoRequest));
-        }
-        catch (Exception e)
-        {
-            Debug.LogError(e);
-        }
-    }
     private void TCPConnectCallback(IAsyncResult _result)
     {
         TcpClient _client = tcpListener.EndAcceptTcpClient(_result);
@@ -137,52 +110,50 @@ public class Server : MonoBehaviour
                 }
             }
         }
-        bool broken = false;
-        for (int i = 0; i < playerCount; i++)
+        int i = 1;
+        /*
+    bool broken = false;
+    print(playerCount);
+    foreach (List<Player> teams in lobby.map.teams)
+    {
+    if (broken)
+    {
+        break;
+    }
+    foreach (Player player in teams)
+    {
+        if (broken)
         {
-            if (broken)
-            {
-                break;
-            }
-            foreach (List<Player> teams in lobby.map.teams)
-            {
-                if (broken)
-                {
-                    break;
-                }
-                foreach (Player player in teams)
-                {
-                    if (broken)
-                    {
-                        break;
-                    }
-                    if (player.id == i)
-                    {
-                        i++;
-                    }
-                    else
-                    {
-                        broken = true;
-                    }
-                }
-            }
-            clients.Add(i, new ServerClient(i, this));
-            clients[i].tcp.Connect(_client);
-            if(visibilty == 0)
-            {
-                Disconnect(i,"Server set to private");
-            }
-            return;
+            break;
         }
+        if (player.id == i)
+        {
+            i++;
+        }
+        else
+        {
+            broken = true;
+        }
+    }
+    }
+    */
+        clients.Add(i, new ServerClient(i, this));
+        clients[i].tcp.Connect(_client);
+        Debug.Log($"{_client.Client.RemoteEndPoint} has been given client id: {i}");
+        //if (visibilty == 0)
+        //{
+        //    Disconnect(i, "Server set to private");
+        //}
+        return;
     }
 
     /// <summary>Send tcp data to all connected clients</summary>
     /// <param name="packet">The packet to send</param>
     private void SendTCPDataToAll(Packet packet)
     {
-        for (int i = 1; i <= maxPlayers; i++)
+        for (int i = 1; i <= clients.Count; i++)
         {
-            if (clients[i].tcp.socket == null)
+            if (clients[i].tcp.socket != null)
             {
                 clients[i].tcp.SendData(packet);
             }
@@ -211,13 +182,68 @@ public class Server : MonoBehaviour
     /// <param name="msg">The message</param>
     public void SendWelcome(int toClient)
     {
-        Packet packet = lobby.ToPacket((int)Packets.welcome);
-        packet.Write(toClient);
-        clients[toClient].tcp.SendData(packet);
+        Debug.Log($"Sending welcome to client {toClient}");
+        try
+        {
+            using (Packet packet = new Packet((int)Packets.welcome))
+            {
+                packet.Write(toClient);
+                clients[toClient].tcp.SendData(packet);
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Error with sending welcome to client {toClient}: {e}");
+        }
     }
     public void SendLobbyUpdate()
     {
-        SendTCPDataToAll(lobby.ToPacket((int)Packets.lobbyUpdate));
+        UnityMainThread.wkr.AddJob(() =>
+        {
+            client.mainMenu.RefreshLobby(lobby);
+        });
+        try
+        {
+            Debug.Log("Sending Lobby Update");
+            using (Packet packet = new Packet((int)Packets.lobbyUpdate))
+            {
+                packet.Write(lobby.map.guid.ToString());
+                packet.Write(lobby.name);
+                foreach (List<Player> team in lobby.map.teams)
+                {
+                    foreach (Player player in team)
+                    {
+                        if (player != null)
+                        {
+                            packet.Write(1);
+                            packet.Write(player.name);
+                            packet.Write(player.losses);
+                            packet.Write(player.wins);
+                            packet.Write(player.rank);
+                        }
+                        else
+                        {
+                            packet.Write(0);
+                        }
+                    }
+                    packet.Write(2);
+                }
+                packet.Write(3);
+                packet.Write(lobby.spectators.Count);
+                foreach (Player player in lobby.spectators)
+                {
+                    packet.Write(player.name);
+                    packet.Write(player.losses);
+                    packet.Write(player.wins);
+                    packet.Write(player.rank);
+                }
+                SendTCPDataToAll(packet);
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Error with sending lobby update: {e}");
+        }
     }
     public void Disconnect(int id)
     {
@@ -250,30 +276,83 @@ public class Server : MonoBehaviour
     /// <param name="packet">The recieved packet</param>
     public void HandleWelcome(int fromClient, Packet packet)
     {
-        Player player = new Player(packet);
-        int _clientIdCheck = packet.ReadInt();
-        player.id = _clientIdCheck;
-        foreach (List<Player> team in lobby.map.teams)
+        Debug.Log("Handeling Welcome");
+        try
         {
-            foreach (Player playerr in team)
+            int _clientIdCheck = packet.ReadInt();
+            Player player = new Player(packet);
+            player.id = _clientIdCheck;
+            for (int i1 = 0; i1 < lobby.map.teams.Count; i1++)
             {
-                if (playerr == null)
+                List<Player> team = lobby.map.teams[i1];
+                Player[] array = team.ToArray();
+                for (int i = 0; i < array.Length; i++)
                 {
-                    team.Add(player);
+                    Player playerr = array[i];
+                    if (playerr == null)
+                    {
+                        lobby.map.teams[i1][i] = player;
+                    }
                 }
             }
-
+            Debug.Log($"{clients[fromClient].tcp.socket.Client.RemoteEndPoint}/{player.name} connected successfully and is now client {fromClient}.");
+            SendLobbyUpdate();
+            if (fromClient != _clientIdCheck)
+            {
+                Debug.LogError($"Player {fromClient}) has assumed the wrong client ID ({_clientIdCheck})!");
+            }
         }
-        Debug.Log($"{clients[fromClient].tcp.socket.Client.RemoteEndPoint}/{player.name} connected successfully and is now player {fromClient}.");
-        SendLobbyUpdate();
-        if (fromClient != _clientIdCheck)
+        catch (Exception e)
         {
-            Debug.LogError($"Player {fromClient}) has assumed the wrong client ID ({_clientIdCheck})!");
+            Debug.LogError($"Error with sending welcome: {e}");
+        }
+    }
+    private void HandleSlotSwitch(int fromClient, Packet packet)
+    {
+        try
+        {
+            Debug.Log("Handeling Slot Switch");
+            int team = packet.ReadInt();
+            int slot = packet.ReadInt();
+
+            Player player = lobby.map.teams.SelectMany(x => x).ToList().Where(x => x != null).ToList().Where(x => x.id == fromClient).ToList()[0];
+            if (lobby.map.teams[team][slot] == null)
+            {
+                foreach (List<Player> teamList in lobby.map.teams)
+                {
+                    for (int i = 0; i < teamList.Count; i++)
+                    {
+                        if (teamList[i] != null)
+                        {
+                            if (teamList[i].id == fromClient)
+                            {
+                                teamList[i] = null;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                for (int i = 0; i < lobby.spectators.Count; i++)
+                {
+                    if (lobby.spectators[i].id == fromClient)
+                    {
+                        lobby.spectators.RemoveAt(i);
+                        break;
+                    }
+                }
+                lobby.map.teams[team][slot] = player;
+                SendLobbyUpdate();
+            }
+        }
+        catch (Exception e)
+        {
+ 
         }
     }
     private void HandleMapDownload(int fromClient, Packet _packet)
     {
-        clients[fromClient].tcp.SendData(lobby.ToPacket((int)Packets.MapDownloadRequest));
+        //clients[fromClient].tcp.SendData(lobby.ToPacket((int)Packets.MapDownloadRequest));
     }
     #endregion
 }
@@ -303,17 +382,6 @@ public class ServerClient
         {
             this.server = server;
             id = _id;
-        }
-
-        public void Connect(TcpClient _socket, bool lobby)
-        {
-            socket = _socket;
-            socket.ReceiveBufferSize = dataBufferSize;
-            socket.SendBufferSize = dataBufferSize;
-            stream = socket.GetStream();
-            receivedData = new Packet();
-            receiveBuffer = new byte[dataBufferSize];
-            stream.BeginRead(receiveBuffer, 0, dataBufferSize, ReceiveCallback, null);
         }
         public void Connect(TcpClient _socket)
         {
@@ -364,7 +432,7 @@ public class ServerClient
             }
             catch (Exception _ex)
             {
-                Debug.Log($"Error receiving TCP data: {_ex}");
+                Debug.LogError($"Error receiving TCP data: {_ex}");
             }
         }
         /// <summary>

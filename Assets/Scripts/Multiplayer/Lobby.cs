@@ -1,80 +1,71 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using System;
-using System.Linq;
 
 public class Lobby
 {
     public string hostIP;
     public string name;
-    public int playersConnected;
-    public int maxPlayers;
     public bool passProtected;
-    public GameObject uiElement;
     public Map map;
     public byte[] password;
     public List<Player> spectators = new List<Player>();
 
-    public Lobby(string hostIP, string name, int playersConnected, int maxPlayers, bool passProtected)
-    {
-        this.hostIP = hostIP;
-        this.name = name;
-        this.playersConnected = playersConnected;
-        this.maxPlayers = maxPlayers;
-        this.passProtected = passProtected;
-    }
-    public Lobby(string name, int playersConnected, int maxPlayers, Map map, byte[] password)
+    public Lobby(string name, Map map)
     {
         this.name = name;
-        this.playersConnected = playersConnected;
-        this.maxPlayers = maxPlayers;
-        passProtected = true;
-        this.map = map;
-        this.password = password;
-    }
-    public Lobby(string name, int playersConnected, int maxPlayers, Map map)
-    {
-        this.name = name;
-        this.playersConnected = playersConnected;
-        this.maxPlayers = maxPlayers;
-        passProtected = false;
         this.map = map;
     }
-    public Lobby(Packet packet, int type)
+    public Lobby(Packet packet, int type, Map map)
     {
-        if (type == (int)Packets.lobbyUpdate|| type == (int)Packets.MapDownloadRequest)
+        try
         {
-            if (type == (int)Packets.MapDownloadRequest)
+            if (type == (int)Packets.lobbyUpdate)
             {
-                map = new Map(packet.ReadString(), packet.ReadString(), packet.ReadString(), packet.ReadBytes(packet.ReadInt()), packet.ReadInt(), packet.ReadInt(), packet.ReadBytes(packet.ReadInt()));
-            }
-            int teamCount = packet.ReadInt();
-            for (int i = 0; i < teamCount; i++)
-            {
-                int teamSize = packet.ReadInt();
-                List<Player> team = new List<Player>();
-                map.teams.Add(team);
-                for (int i1 = 0; i1 < teamSize; i1++)
+                name = packet.ReadString();
+                /*
+                if (type == (int)Packets.MapDownloadRequest)
                 {
-                    string name = packet.ReadString();
-                    if(name == "null")
+                    this.map = new Map(packet.ReadString(), packet.ReadString(), packet.ReadString(), packet.ReadBytes(packet.ReadInt()), packet.ReadInt(), packet.ReadInt(), packet.ReadBytes(packet.ReadInt()));
+                }
+                */
+                this.map = map;
+                int teamCounter = 0;
+                int slotCounter = 0;
+                bool notBroken = true;
+                while (notBroken)
+                {
+                    int typee = packet.ReadInt();
+                    switch (typee)
                     {
-                        team.Add(null);
-                    }
-                    else
-                    {
-                        team.Add(new Player(name, packet.ReadInt(), packet.ReadInt(), packet.ReadString()));
+                        case 0:
+                            map.teams[teamCounter][slotCounter] = null;
+                            slotCounter++;
+                            break;
+                        case 1:
+                            map.teams[teamCounter][slotCounter] = new Player(packet.ReadString(), packet.ReadInt(), packet.ReadInt(), packet.ReadString());
+                            slotCounter++;
+                            break;
+                        case 2:
+                            slotCounter = 0;
+                            teamCounter++;
+                            break;
+                        case 3:
+                            notBroken = false;
+                            break;
+
                     }
                 }
+                //int amountOfSpectators = packet.ReadInt();
+                //for (int i = 0; i < amountOfSpectators; i++)
+                //{
+                //spectators.Add(new Player(packet.ReadString(), packet.ReadInt(), packet.ReadInt(), packet.ReadString()));
+                //}
             }
-            int amountOfSpectators = packet.ReadInt();
-            for (int i = 0; i < amountOfSpectators; i++)
-            {
-                spectators.Add(new Player(packet.ReadString(), packet.ReadInt(), packet.ReadInt(), packet.ReadString()));
-            }
-            name = packet.ReadString();
-            map.guid = new Guid(packet.ReadString());
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Error while parsing lobby from packet {e}");
         }
     }
     /*
@@ -90,18 +81,7 @@ public class Lobby
     */
     public Packet ToPacket(int type)
     {
-        if (type == (int)Packets.LobbyInfoRequest)
-        {
-            using (Packet packet = new Packet(type))
-            {
-                packet.Write(name);
-                packet.Write(playersConnected);
-                packet.Write(maxPlayers);
-                packet.Write(passProtected);
-                return packet;
-            }
-        }
-        if (type == (int)Packets.lobbyUpdate|| type == (int)Packets.MapDownloadRequest)
+        if (type == (int)Packets.lobbyUpdate || type == (int)Packets.MapDownloadRequest)
         {
             using (Packet packet = new Packet(type))
             {

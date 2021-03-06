@@ -6,13 +6,10 @@ using UnityEngine;
 public enum Packets
 {
     welcome = 1,
-    LobbyInfoRequest = 2,
-    requestLobbyList = 3,
-    registerLobby = 4,
-    unRegisterLobby = 5,
-    lobbyUpdate = 6,
-    disconnect = 7,
-    MapDownloadRequest = 8,
+    lobbyUpdate = 2,
+    disconnect = 3,
+    MapDownloadRequest = 4,
+    SlotSwitch = 5,
 }
 
 public class Packet : IDisposable
@@ -34,7 +31,6 @@ public class Packet : IDisposable
     {
         buffer = new List<byte>(); // Intitialize buffer
         readPos = 0; // Set readPos to 0
-
         Write(_id); // Write packet id to the buffer
     }
 
